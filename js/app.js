@@ -38,6 +38,9 @@
     renderServices();
   });
 
+  // Subtle section parallax for depth
+  initSectionParallax();
+
   // -------------------------------------------------------------------------
   // Language helpers
   // -------------------------------------------------------------------------
@@ -406,7 +409,7 @@
           : `<div class="dentist-card__placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
 
         return `
-        <article class="dentist-card reveal">
+        <article class="dentist-card reveal reveal-scale">
           <div class="dentist-card__photo">${photo}</div>
           <div class="dentist-card__body">
             <h3>${escapeHtml(d.name)}</h3>
@@ -436,7 +439,7 @@
     scroller.innerHTML = images
       .map(
         (src, i) => `
-      <figure class="gallery__item reveal">
+      <figure class="gallery__item reveal reveal-fade">
         <img src="${escapeAttr(src)}" alt="${escapeAttr(
           `${cfg.practice.name} — ${i + 1}`
         )}" loading="lazy" decoding="async" />
@@ -560,7 +563,7 @@
         const name = typeof logo === "string" ? "Insurance" : logo.name || "Insurance";
         if (!src) return "";
         return `
-        <li class="reveal">
+        <li class="reveal reveal-fade">
           <img src="${escapeAttr(src)}" alt="${escapeAttr(name)}" loading="lazy" decoding="async" />
         </li>`;
       })
@@ -870,6 +873,49 @@
     }
 
     update();
+  }
+
+  // -------------------------------------------------------------------------
+  // Subtle section parallax for depth
+  // -------------------------------------------------------------------------
+  function initSectionParallax() {
+    const sections = document.querySelectorAll('.services, .testimonials');
+    if (!sections.length || prefersReducedMotion.matches) return;
+
+    let ticking = false;
+
+    function updateParallax() {
+      ticking = false;
+      const scrollY = window.scrollY;
+
+      sections.forEach(section => {
+        const rect = section.getBoundingClientRect();
+        const sectionTop = rect.top + scrollY;
+        const sectionHeight = rect.height;
+        
+        // Only transform when section is near viewport
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          const scrolled = scrollY - sectionTop + window.innerHeight;
+          const progress = scrolled / (sectionHeight + window.innerHeight);
+          // Subtle parallax: move background slightly slower (0.15x speed)
+          const offset = progress * sectionHeight * 0.15;
+          
+          const pseudo = section.querySelector('::before');
+          if (section.style.setProperty) {
+            section.style.setProperty('--parallax-y', `${offset}px`);
+          }
+        }
+      });
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(updateParallax);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    updateParallax();
   }
 
   // -------------------------------------------------------------------------

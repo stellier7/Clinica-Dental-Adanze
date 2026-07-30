@@ -1220,7 +1220,7 @@ body.nav-open {
 }
 
 /* ---------------------------------------------------------------------------
-   Scroll reveals
+   Scroll reveals — varied directions for visual interest
    --------------------------------------------------------------------------- */
 /* Content visible by default; only hide after JS arms the reveal system */
 .reveal {
@@ -1229,16 +1229,54 @@ body.nav-open {
   transition: opacity 650ms var(--ease-out), transform 650ms var(--ease-out);
 }
 
-/* Only hide reveals once JS is ready to observe them */
+/* Default: slide up from below */
 .js-ready .reveal:not(.is-visible) {
   opacity: 0;
-  transform: translate3d(0, 22px, 0);
+  transform: translate3d(0, 40px, 0);
 }
 
-.reveal.is-visible {
-  opacity: 1;
+/* Slide in from left */
+.js-ready .reveal-left:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(-40px, 0, 0);
+}
+
+/* Slide in from right */
+.js-ready .reveal-right:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(40px, 0, 0);
+}
+
+/* Fade only (no slide) */
+.js-ready .reveal-fade:not(.is-visible) {
+  opacity: 0;
   transform: translate3d(0, 0, 0);
 }
+
+/* Scale + fade */
+.js-ready .reveal-scale:not(.is-visible) {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.reveal.is-visible,
+.reveal-left.is-visible,
+.reveal-right.is-visible,
+.reveal-fade.is-visible,
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* Stagger delays for grids — add to each nth-child */
+.reveal:nth-child(1) { transition-delay: 0ms; }
+.reveal:nth-child(2) { transition-delay: 80ms; }
+.reveal:nth-child(3) { transition-delay: 160ms; }
+.reveal:nth-child(4) { transition-delay: 240ms; }
+.reveal:nth-child(5) { transition-delay: 320ms; }
+.reveal:nth-child(6) { transition-delay: 400ms; }
+.reveal:nth-child(7) { transition-delay: 480ms; }
+.reveal:nth-child(8) { transition-delay: 560ms; }
 
 /* ---------------------------------------------------------------------------
    Tablet / Desktop nav & sticky bar
@@ -1294,17 +1332,31 @@ body.nav-open {
   }
 }
 
-/* Section alternating wash for calm rhythm */
+/* Section alternating wash for calm rhythm + subtle parallax */
 .services,
 .gallery,
 .insurance {
   background: rgba(255, 255, 255, 0.35);
+  position: relative;
 }
 
 .dentists,
 .testimonials,
 .location {
   background: transparent;
+  position: relative;
+}
+
+/* Parallax background layer for depth */
+.services::before,
+.testimonials::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(58, 124, 165, 0.03), transparent 50%);
+  z-index: -1;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 /* Utility: hide empty/optional sections */
