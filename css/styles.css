@@ -1189,10 +1189,17 @@ body.nav-open {
 /* ---------------------------------------------------------------------------
    Scroll reveals
    --------------------------------------------------------------------------- */
+/* Content visible by default; only hide after JS arms the reveal system */
 .reveal {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition: opacity 650ms var(--ease-out), transform 650ms var(--ease-out);
+}
+
+/* Only hide reveals once JS is ready to observe them */
+.js-ready .reveal:not(.is-visible) {
   opacity: 0;
   transform: translate3d(0, 22px, 0);
-  transition: opacity 650ms var(--ease-out), transform 650ms var(--ease-out);
 }
 
 .reveal.is-visible {

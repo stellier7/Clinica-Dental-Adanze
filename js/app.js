@@ -883,6 +883,9 @@
       return;
     }
 
+    // Arm the reveal system by adding .js-ready to html (CSS hides .reveal only when .js-ready exists)
+    document.documentElement.classList.add("js-ready");
+
     revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -892,10 +895,17 @@
           }
         });
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0, rootMargin: "0px 0px -8% 0px" }
     );
 
     document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
+
+    // Failsafe: after ~1.5s, ensure all reveals are visible (especially for iPad Safari)
+    setTimeout(() => {
+      document.querySelectorAll(".reveal:not(.is-visible)").forEach((el) => {
+        el.classList.add("is-visible");
+      });
+    }, 1500);
   }
 
   function refreshReveals() {
@@ -903,6 +913,9 @@
       document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
       return;
     }
+    // Ensure .js-ready is set
+    document.documentElement.classList.add("js-ready");
+    
     if (!revealObserver) {
       initScrollReveals();
       return;
