@@ -327,12 +327,7 @@ body.nav-open .site-header.is-hidden {
 }
 
 .lang-toggle {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--color-lang-bg);
-  border: 1px solid var(--color-line);
+  display: none;
 }
 
 .lang-toggle__btn {
