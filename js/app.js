@@ -965,40 +965,47 @@
   let revealObserver = null;
 
   function initScrollReveals() {
+    const allReveals = document.querySelectorAll(".reveal");
+    
     if (prefersReducedMotion.matches) {
-      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+      allReveals.forEach((el) => el.classList.add("is-visible"));
       return;
     }
 
-    // Enable the reveal animation system immediately
+    // Enable the reveal animation system
     document.documentElement.classList.add("js-ready");
+
+    console.log(`[Reveals] Initializing ${allReveals.length} reveal elements`);
 
     revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            console.log("[Reveals] Element entering viewport:", entry.target.className);
             entry.target.classList.add("is-visible");
             revealObserver.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0, rootMargin: "0px 0px -50px 0px" }
     );
 
-    // Observe all reveals for scroll-triggered animations
-    document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
+    // Observe all reveal elements
+    allReveals.forEach((el) => revealObserver.observe(el));
 
-    // Failsafe: after 2s, ensure all reveals are visible (for cases where IntersectionObserver fails)
+    // Failsafe: after 3s, ensure all reveals are visible
     setTimeout(() => {
-      document.querySelectorAll(".reveal:not(.is-visible)").forEach((el) => {
-        el.classList.add("is-visible");
-      });
-    }, 2000);
+      const stillHidden = document.querySelectorAll(".reveal:not(.is-visible)");
+      console.log(`[Reveals] Failsafe triggered for ${stillHidden.length} elements`);
+      stillHidden.forEach((el) => el.classList.add("is-visible"));
+    }, 3000);
   }
 
   function refreshReveals() {
+    const allReveals = document.querySelectorAll(".reveal");
+    
     if (prefersReducedMotion.matches) {
-      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+      allReveals.forEach((el) => el.classList.add("is-visible"));
       return;
     }
     
@@ -1012,7 +1019,6 @@
       revealObserver.observe(el);
     });
     
-    // Ensure .js-ready is set (in case it wasn't already)
     document.documentElement.classList.add("js-ready");
   }
 
