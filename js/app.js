@@ -31,10 +31,10 @@
   initHeaderScroll();
   initTestimonialsCarousel();
   
-  // Initialize animation system after content is rendered
-  setTimeout(() => {
-    initAnimations();
-  }, 100);
+  // Animations disabled for now
+  // setTimeout(() => {
+  //   initAnimations();
+  // }, 100);
 
   // Re-bind accordion behavior when breakpoint flips
   MQ_DESKTOP_SERVICES.addEventListener("change", () => {
@@ -876,35 +876,15 @@
   }
 
   // =========================================================================
-  // ANIMATION SYSTEM - IntersectionObserver + Parallax
+  // DISABLED: ANIMATION SYSTEM
   // =========================================================================
 
   let animationObserver = null;
 
   function initAnimations() {
-    if (prefersReducedMotion.matches) {
-      // Skip animations for users who prefer reduced motion
-      document.querySelectorAll('[data-animate]').forEach(el => {
-        el.classList.add('in-view', 'animated');
-        el.style.opacity = '1';
-        el.style.transform = 'none';
-      });
-      return;
-    }
-
-    console.log('[Animations] Initializing animation system');
-
-    // 1. HERO ANIMATIONS - On load (above fold)
-    initHeroAnimations();
-
-    // 2. SCROLL-TRIGGERED ANIMATIONS - IntersectionObserver
-    initScrollAnimations();
-
-    // 3. GALLERY NAVIGATION
+    console.log('[Animations] DISABLED - All animations turned off');
+    // Just init gallery navigation
     initGalleryNav();
-    
-    // 4. HERO PARALLAX - Use existing function
-    initParallax();
   }
 
   // -------------------------------------------------------------------------

@@ -1269,64 +1269,9 @@ body.nav-open {
 }
 
 /* ---------------------------------------------------------------------------
-   SCROLL ANIMATIONS - IntersectionObserver driven
+   ANIMATIONS - DISABLED FOR NOW
    --------------------------------------------------------------------------- */
-
-/* Base setup: all animated elements start hidden, will-change for performance */
-[data-animate] {
-  opacity: 0;
-  will-change: transform, opacity;
-  transition: opacity 650ms cubic-bezier(0.22, 1, 0.36, 1), 
-              transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Remove will-change after animation completes (set by JS) */
-[data-animate].animated {
-  will-change: auto;
-}
-
-/* HERO - Load animations (not scroll-triggered) */
-[data-animate="hero-heading"] {
-  transform: translate3d(60px, 0, 0);
-}
-
-[data-animate="hero-cta"] {
-  transform: scale(0.9);
-  transition-delay: 200ms;
-}
-
-/* SLIDE UP (default for most sections) */
-[data-animate="slide-up"] {
-  transform: translate3d(0, 30px, 0);
-}
-
-/* SLIDE FROM LEFT */
-[data-animate="slide-left"] {
-  transform: translate3d(-50px, 0, 0);
-}
-
-/* SLIDE FROM RIGHT */
-[data-animate="slide-right"] {
-  transform: translate3d(50px, 0, 0);
-}
-
-/* FADE + SCALE */
-[data-animate="fade-scale"] {
-  transform: scale(0.95);
-}
-
-/* FADE ONLY */
-[data-animate="fade"] {
-  transform: none;
-}
-
-/* IN-VIEW STATE: Reset to visible position */
-[data-animate].in-view {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-}
-
-/* Stagger delays - applied via inline style by JS for precision */
+/* No animations - everything visible by default */
 
 /* ---------------------------------------------------------------------------
    Tablet / Desktop nav & sticky bar
