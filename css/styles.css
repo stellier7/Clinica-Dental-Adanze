@@ -476,7 +476,6 @@ body.nav-open {
   margin: 0 auto;
   padding: 5.5rem 0 calc(3rem + 0.5vh);
   max-width: 40rem;
-  animation: heroIn 900ms var(--ease-out) both;
 }
 
 .hero__badge {
