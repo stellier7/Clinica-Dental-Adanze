@@ -474,8 +474,14 @@ body.nav-open {
 .hero__content {
   width: min(100% - 2rem, var(--container));
   margin: 0 auto;
-  padding: 5.5rem 0 calc(3rem + 0.5vh);
+  padding: 2.5rem 0 calc(3rem + 0.5vh);
   max-width: 40rem;
+}
+
+@media (min-width: 768px) {
+  .hero__content {
+    padding-top: 5.5rem;
+  }
 }
 
 .hero__badge {
