@@ -883,8 +883,8 @@
       return;
     }
 
-    // Start with all reveals visible
-    document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    // Enable the reveal animation system immediately
+    document.documentElement.classList.add("js-ready");
 
     revealObserver = new IntersectionObserver(
       (entries) => {
@@ -898,23 +898,15 @@
       { threshold: 0, rootMargin: "0px 0px -8% 0px" }
     );
 
-    // Arm the reveal system after a brief delay to let initial content render
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        // Now enable the reveal animation system
-        document.documentElement.classList.add("js-ready");
-        
-        // Observe all reveals for scroll-triggered animations
-        document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
-      });
-    });
+    // Observe all reveals for scroll-triggered animations
+    document.querySelectorAll(".reveal").forEach((el) => revealObserver.observe(el));
 
-    // Failsafe: after ~1.5s, ensure all reveals are visible (especially for iPad Safari)
+    // Failsafe: after 2s, ensure all reveals are visible (for cases where IntersectionObserver fails)
     setTimeout(() => {
       document.querySelectorAll(".reveal:not(.is-visible)").forEach((el) => {
         el.classList.add("is-visible");
       });
-    }, 1500);
+    }, 2000);
   }
 
   function refreshReveals() {
@@ -928,9 +920,8 @@
       return;
     }
     
-    // Make new reveals visible immediately, then let observer manage them
+    // Observe new reveal elements
     document.querySelectorAll(".reveal:not(.is-visible)").forEach((el) => {
-      el.classList.add("is-visible");
       revealObserver.observe(el);
     });
     

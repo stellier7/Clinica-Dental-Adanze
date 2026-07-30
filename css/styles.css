@@ -103,7 +103,6 @@ body {
     var(--gradient-body-1),
     var(--gradient-body-2),
     var(--gradient-body-3);
-  padding-bottom: calc(var(--sticky-bar-h) + env(safe-area-inset-bottom, 0px));
 }
 
 img {
@@ -1199,17 +1198,7 @@ body.nav-open {
    Sticky mobile book bar
    --------------------------------------------------------------------------- */
 .sticky-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 90;
-  padding: 0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(215, 226, 234, 0.95);
-  box-shadow: var(--shadow-md);
+  display: none;
 }
 
 .sticky-bar__btn {
@@ -1257,14 +1246,6 @@ body.nav-open {
 @media (min-width: 900px) {
   :root {
     --header-h: 72px;
-  }
-
-  body {
-    padding-bottom: 0;
-  }
-
-  .sticky-bar {
-    display: none;
   }
 
   .nav-toggle {
