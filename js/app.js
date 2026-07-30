@@ -471,7 +471,7 @@
       .map((item) => {
         const stars = Math.max(0, Math.min(5, Number(item.rating) || 0));
         return `
-        <article class="testimonial-card reveal">
+        <article class="testimonial-card reveal reveal-scale">
           <div class="testimonial-card__stars" aria-label="${stars} / 5">
             ${Array.from({ length: 5 }, (_, i) => starSvg(i < stars)).join("")}
           </div>
