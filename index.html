@@ -152,8 +152,18 @@
             <p class="section__lead" data-i18n="sections.galleryLead"></p>
           </header>
         </div>
-        <div class="gallery__scroller" data-gallery-scroller tabindex="0">
-          <!-- images injected -->
+        <div class="gallery__wrap">
+          <div class="gallery__scroller" data-gallery-scroller tabindex="0">
+            <!-- images injected -->
+          </div>
+          <div class="gallery__nav" data-gallery-nav>
+            <button class="gallery__arrow gallery__arrow--prev" data-gallery-prev aria-label="Previous image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button class="gallery__arrow gallery__arrow--next" data-gallery-next aria-label="Next image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
         </div>
       </section>
 

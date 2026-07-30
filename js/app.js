@@ -41,6 +41,9 @@
   // Subtle section parallax for depth
   initSectionParallax();
 
+  // Gallery navigation
+  initGalleryNav();
+
   // -------------------------------------------------------------------------
   // Language helpers
   // -------------------------------------------------------------------------
@@ -873,6 +876,44 @@
     }
 
     update();
+  }
+
+  // -------------------------------------------------------------------------
+  // Gallery navigation
+  // -------------------------------------------------------------------------
+  function initGalleryNav() {
+    const scroller = document.querySelector('[data-gallery-scroller]');
+    const prevBtn = document.querySelector('[data-gallery-prev]');
+    const nextBtn = document.querySelector('[data-gallery-next]');
+    
+    if (!scroller || !prevBtn || !nextBtn) return;
+
+    function updateButtons() {
+      const isAtStart = scroller.scrollLeft <= 10;
+      const isAtEnd = scroller.scrollLeft >= scroller.scrollWidth - scroller.clientWidth - 10;
+      
+      prevBtn.disabled = isAtStart;
+      nextBtn.disabled = isAtEnd;
+    }
+
+    function scrollToNext() {
+      const itemWidth = scroller.querySelector('.gallery__item')?.offsetWidth || 0;
+      const gap = 17; // 1.1rem in px (approximate)
+      scroller.scrollBy({ left: itemWidth + gap, behavior: 'smooth' });
+    }
+
+    function scrollToPrev() {
+      const itemWidth = scroller.querySelector('.gallery__item')?.offsetWidth || 0;
+      const gap = 17;
+      scroller.scrollBy({ left: -(itemWidth + gap), behavior: 'smooth' });
+    }
+
+    nextBtn.addEventListener('click', scrollToNext);
+    prevBtn.addEventListener('click', scrollToPrev);
+    scroller.addEventListener('scroll', updateButtons, { passive: true });
+    
+    // Initial state
+    updateButtons();
   }
 
   // -------------------------------------------------------------------------
