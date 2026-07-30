@@ -29,20 +29,17 @@
   renderAll();
   bindGlobalUI();
   initHeaderScroll();
-  initParallax();
-  initScrollReveals();
   initTestimonialsCarousel();
+  
+  // Initialize animation system after content is rendered
+  setTimeout(() => {
+    initAnimations();
+  }, 100);
 
   // Re-bind accordion behavior when breakpoint flips
   MQ_DESKTOP_SERVICES.addEventListener("change", () => {
     renderServices();
   });
-
-  // Subtle section parallax for depth
-  initSectionParallax();
-
-  // Gallery navigation
-  initGalleryNav();
 
   // -------------------------------------------------------------------------
   // Language helpers
@@ -878,8 +875,225 @@
     update();
   }
 
+  // =========================================================================
+  // ANIMATION SYSTEM - IntersectionObserver + Parallax
+  // =========================================================================
+
+  let animationObserver = null;
+
+  function initAnimations() {
+    if (prefersReducedMotion.matches) {
+      // Skip animations for users who prefer reduced motion
+      document.querySelectorAll('[data-animate]').forEach(el => {
+        el.classList.add('in-view', 'animated');
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      });
+      return;
+    }
+
+    console.log('[Animations] Initializing animation system');
+
+    // 1. HERO ANIMATIONS - On load (above fold)
+    initHeroAnimations();
+
+    // 2. SCROLL-TRIGGERED ANIMATIONS - IntersectionObserver
+    initScrollAnimations();
+
+    // 3. GALLERY NAVIGATION
+    initGalleryNav();
+    
+    // 4. HERO PARALLAX - Use existing function
+    initParallax();
+  }
+
   // -------------------------------------------------------------------------
-  // Gallery navigation
+  // 1. HERO - Load animations (not scroll-triggered)
+  // -------------------------------------------------------------------------
+  function initHeroAnimations() {
+    const heading = document.querySelector('.hero__title');
+    const tagline = document.querySelector('.hero__tagline');
+    const badge = document.querySelector('.hero__badge');
+    const cta = document.querySelector('.hero__actions .btn');
+
+    // Wrap heading + tagline in animated container
+    if (heading) {
+      heading.setAttribute('data-animate', 'hero-heading');
+      setTimeout(() => {
+        heading.classList.add('in-view');
+        setTimeout(() => heading.classList.add('animated'), 650);
+      }, 100);
+    }
+
+    if (tagline) {
+      tagline.setAttribute('data-animate', 'hero-heading');
+      setTimeout(() => {
+        tagline.classList.add('in-view');
+        setTimeout(() => tagline.classList.add('animated'), 650);
+      }, 100);
+    }
+
+    if (badge) {
+      badge.setAttribute('data-animate', 'hero-heading');
+      setTimeout(() => {
+        badge.classList.add('in-view');
+        setTimeout(() => badge.classList.add('animated'), 650);
+      }, 100);
+    }
+
+    if (cta) {
+      cta.setAttribute('data-animate', 'hero-cta');
+      setTimeout(() => {
+        cta.classList.add('in-view');
+        setTimeout(() => cta.classList.add('animated'), 850);
+      }, 100);
+    }
+
+    console.log('[Animations] Hero load animations triggered');
+  }
+
+  // -------------------------------------------------------------------------
+  // 2. SCROLL ANIMATIONS - IntersectionObserver
+  // -------------------------------------------------------------------------
+  function initScrollAnimations() {
+    // Set up observer with 20% threshold
+    animationObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !entry.target.classList.contains('in-view')) {
+            entry.target.classList.add('in-view');
+            
+            // Remove will-change after animation completes
+            setTimeout(() => {
+              entry.target.classList.add('animated');
+            }, 650);
+
+            // Unobserve after animating
+            animationObserver.unobserve(entry.target);
+            
+            console.log('[Animations] Triggered:', entry.target.getAttribute('data-animate'));
+          }
+        });
+      },
+      {
+        threshold: 0.2,
+        rootMargin: '0px'
+      }
+    );
+
+    // Observe all elements that need scroll animations
+    observeAllAnimatedElements();
+    
+    console.log('[Animations] Scroll observer initialized');
+  }
+
+  function observeAllAnimatedElements() {
+    // Find and set up animations for each section
+    setupTrustBarAnimations();
+    setupServicesAnimations();
+    setupDentistAnimations();
+    setupGalleryAnimations();
+    setupTestimonialsAnimations();
+    setupInsuranceAnimations();
+    setupLocationAnimations();
+    setupSectionHeaders();
+  }
+
+  // TRUST BAR - Staggered fade up
+  function setupTrustBarAnimations() {
+    const trustItems = document.querySelectorAll('.trust__list li');
+    trustItems.forEach((item, i) => {
+      item.setAttribute('data-animate', 'slide-up');
+      item.style.transitionDelay = `${i * 100}ms`;
+      animationObserver.observe(item);
+    });
+  }
+
+  // SERVICES - Alternate slide direction
+  function setupServicesAnimations() {
+    const serviceCards = document.querySelectorAll('.service-card');
+    serviceCards.forEach((card, i) => {
+      const direction = i % 2 === 0 ? 'slide-left' : 'slide-right';
+      card.setAttribute('data-animate', direction);
+      card.style.transitionDelay = `${i * 120}ms`;
+      animationObserver.observe(card);
+    });
+  }
+
+  // DENTIST - Photo from left, text from right with offset
+  function setupDentistAnimations() {
+    const dentistPhoto = document.querySelector('.dentist-card__photo');
+    const dentistBody = document.querySelector('.dentist-card__body');
+    
+    if (dentistPhoto) {
+      dentistPhoto.setAttribute('data-animate', 'slide-left');
+      animationObserver.observe(dentistPhoto);
+    }
+    
+    if (dentistBody) {
+      dentistBody.setAttribute('data-animate', 'slide-right');
+      dentistBody.style.transitionDelay = '150ms';
+      animationObserver.observe(dentistBody);
+    }
+  }
+
+  // GALLERY - Fade scale staggered
+  function setupGalleryAnimations() {
+    const galleryItems = document.querySelectorAll('.gallery__item');
+    galleryItems.forEach((item, i) => {
+      item.setAttribute('data-animate', 'fade-scale');
+      item.style.transitionDelay = `${i * 80}ms`;
+      animationObserver.observe(item);
+    });
+  }
+
+  // TESTIMONIALS - Fade up staggered
+  function setupTestimonialsAnimations() {
+    const testimonialCards = document.querySelectorAll('.testimonial-card');
+    testimonialCards.forEach((card, i) => {
+      card.setAttribute('data-animate', 'slide-up');
+      card.style.transitionDelay = `${i * 120}ms`;
+      animationObserver.observe(card);
+    });
+  }
+
+  // INSURANCE - Fade as group
+  function setupInsuranceAnimations() {
+    const logoList = document.querySelector('.insurance__logos');
+    if (logoList) {
+      logoList.setAttribute('data-animate', 'fade');
+      animationObserver.observe(logoList);
+    }
+  }
+
+  // LOCATION - Fade up
+  function setupLocationAnimations() {
+    const locationCard = document.querySelector('.location__card');
+    if (locationCard) {
+      locationCard.setAttribute('data-animate', 'slide-up');
+      animationObserver.observe(locationCard);
+    }
+  }
+
+  // SECTION HEADERS - Fade up
+  function setupSectionHeaders() {
+    const headers = document.querySelectorAll('.section__header');
+    headers.forEach(header => {
+      header.setAttribute('data-animate', 'slide-up');
+      animationObserver.observe(header);
+    });
+  }
+
+  // Re-observe new elements after content updates (language change, etc.)
+  function refreshAnimations() {
+    if (!animationObserver || prefersReducedMotion.matches) return;
+    observeAllAnimatedElements();
+  }
+
+  // Note: Hero parallax is handled by existing initParallax() function below
+
+  // -------------------------------------------------------------------------
+  // 4. GALLERY NAVIGATION
   // -------------------------------------------------------------------------
   function initGalleryNav() {
     const scroller = document.querySelector('[data-gallery-scroller]');
@@ -898,7 +1112,7 @@
 
     function scrollToNext() {
       const itemWidth = scroller.querySelector('.gallery__item')?.offsetWidth || 0;
-      const gap = 17; // 1.1rem in px (approximate)
+      const gap = 17;
       scroller.scrollBy({ left: itemWidth + gap, behavior: 'smooth' });
     }
 
@@ -912,114 +1126,7 @@
     prevBtn.addEventListener('click', scrollToPrev);
     scroller.addEventListener('scroll', updateButtons, { passive: true });
     
-    // Initial state
     updateButtons();
-  }
-
-  // -------------------------------------------------------------------------
-  // Subtle section parallax for depth
-  // -------------------------------------------------------------------------
-  function initSectionParallax() {
-    const sections = document.querySelectorAll('.services, .testimonials');
-    if (!sections.length || prefersReducedMotion.matches) return;
-
-    let ticking = false;
-
-    function updateParallax() {
-      ticking = false;
-      const scrollY = window.scrollY;
-
-      sections.forEach(section => {
-        const rect = section.getBoundingClientRect();
-        const sectionTop = rect.top + scrollY;
-        const sectionHeight = rect.height;
-        
-        // Only transform when section is near viewport
-        if (rect.top < window.innerHeight && rect.bottom > 0) {
-          const scrolled = scrollY - sectionTop + window.innerHeight;
-          const progress = scrolled / (sectionHeight + window.innerHeight);
-          // Subtle parallax: move background slightly slower (0.15x speed)
-          const offset = progress * sectionHeight * 0.15;
-          
-          const pseudo = section.querySelector('::before');
-          if (section.style.setProperty) {
-            section.style.setProperty('--parallax-y', `${offset}px`);
-          }
-        }
-      });
-    }
-
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(updateParallax);
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    updateParallax();
-  }
-
-  // -------------------------------------------------------------------------
-  // Scroll-triggered reveals
-  // -------------------------------------------------------------------------
-  let revealObserver = null;
-
-  function initScrollReveals() {
-    const allReveals = document.querySelectorAll(".reveal");
-    
-    if (prefersReducedMotion.matches) {
-      allReveals.forEach((el) => el.classList.add("is-visible"));
-      return;
-    }
-
-    // Enable the reveal animation system
-    document.documentElement.classList.add("js-ready");
-
-    console.log(`[Reveals] Initializing ${allReveals.length} reveal elements`);
-
-    revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            console.log("[Reveals] Element entering viewport:", entry.target.className);
-            entry.target.classList.add("is-visible");
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0, rootMargin: "0px 0px -50px 0px" }
-    );
-
-    // Observe all reveal elements
-    allReveals.forEach((el) => revealObserver.observe(el));
-
-    // Failsafe: after 3s, ensure all reveals are visible
-    setTimeout(() => {
-      const stillHidden = document.querySelectorAll(".reveal:not(.is-visible)");
-      console.log(`[Reveals] Failsafe triggered for ${stillHidden.length} elements`);
-      stillHidden.forEach((el) => el.classList.add("is-visible"));
-    }, 3000);
-  }
-
-  function refreshReveals() {
-    const allReveals = document.querySelectorAll(".reveal");
-    
-    if (prefersReducedMotion.matches) {
-      allReveals.forEach((el) => el.classList.add("is-visible"));
-      return;
-    }
-    
-    if (!revealObserver) {
-      initScrollReveals();
-      return;
-    }
-    
-    // Observe new reveal elements
-    document.querySelectorAll(".reveal:not(.is-visible)").forEach((el) => {
-      revealObserver.observe(el);
-    });
-    
-    document.documentElement.classList.add("js-ready");
   }
 
   // -------------------------------------------------------------------------
