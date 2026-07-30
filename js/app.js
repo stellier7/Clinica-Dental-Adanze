@@ -320,7 +320,7 @@
         const id = `service-panel-${index}`;
 
         return `
-        <article class="service-card reveal" data-service-card>
+        <article class="service-card" data-service-card>
           <button
             type="button"
             class="service-card__trigger"
@@ -409,7 +409,7 @@
           : `<div class="dentist-card__placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
 
         return `
-        <article class="dentist-card reveal reveal-scale">
+        <article class="dentist-card">
           <div class="dentist-card__photo">${photo}</div>
           <div class="dentist-card__body">
             <h3>${escapeHtml(d.name)}</h3>
@@ -439,7 +439,7 @@
     scroller.innerHTML = images
       .map(
         (src, i) => `
-      <figure class="gallery__item reveal reveal-fade">
+      <figure class="gallery__item">
         <img src="${escapeAttr(src)}" alt="${escapeAttr(
           `${cfg.practice.name} — ${i + 1}`
         )}" loading="lazy" decoding="async" />
@@ -468,7 +468,7 @@
       .map((item) => {
         const stars = Math.max(0, Math.min(5, Number(item.rating) || 0));
         return `
-        <article class="testimonial-card reveal reveal-scale">
+        <article class="testimonial-card">
           <div class="testimonial-card__stars" aria-label="${stars} / 5">
             ${Array.from({ length: 5 }, (_, i) => starSvg(i < stars)).join("")}
           </div>
@@ -563,7 +563,7 @@
         const name = typeof logo === "string" ? "Insurance" : logo.name || "Insurance";
         if (!src) return "";
         return `
-        <li class="reveal reveal-fade">
+        <li>
           <img src="${escapeAttr(src)}" alt="${escapeAttr(name)}" loading="lazy" decoding="async" />
         </li>`;
       })
