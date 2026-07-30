@@ -137,7 +137,7 @@
       .toUpperCase();
 
     brand.innerHTML = logoUrl
-      ? `<img class="brand__logo" src="${escapeAttr(logoUrl)}" alt="" />
+      ? `<img class="brand__logo" src="${escapeAttr(logoUrl)}" alt="${escapeAttr(cfg.practice.name)} logo" />
          <span class="brand__name">${escapeHtml(cfg.practice.name)}</span>`
       : `<span class="brand__mark" aria-hidden="true">${escapeHtml(initials)}</span>
          <span class="brand__name">${escapeHtml(cfg.practice.name)}</span>`;

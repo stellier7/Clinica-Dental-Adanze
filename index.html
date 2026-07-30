@@ -9,6 +9,24 @@
     />
     <title>Dental Practice</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Sonrisa Dental" />
+    <meta property="og:description" content="Gentle care for healthier, brighter smiles." />
+    <meta property="og:image" content="/assets/images/hero.jpg" />
+    <meta property="og:url" content="/" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sonrisa Dental" />
+    <meta name="twitter:description" content="Gentle care for healthier, brighter smiles." />
+    <meta name="twitter:image" content="/assets/images/hero.jpg" />
+
     <!-- Typography: friendly modern sans — not Inter/Roboto/system defaults -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,6 +34,9 @@
       href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Preload hero image for LCP optimization -->
+    <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high" />
 
     <link rel="stylesheet" href="css/styles.css" />
   </head>

@@ -388,9 +388,10 @@ const config = {
   // SOCIAL LINKS
   // ---------------------------------------------------------------------------
   // OPTIONAL — leave blank to hide that icon in the footer
+  // ⚠️ UPDATE THESE: Currently placeholder URLs. Replace with actual practice social profiles.
   socials: {
-    instagram: "https://instagram.com/",
-    facebook: "https://facebook.com/",
+    instagram: "", // e.g. "https://instagram.com/sonrisadental"
+    facebook: "", // e.g. "https://facebook.com/sonrisadental"
   },
 };
 
