@@ -19,6 +19,11 @@
   const MQ_DESKTOP_SERVICES = window.matchMedia("(min-width: 768px)");
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+  // Animation system variables (declared early to avoid TDZ errors)
+  const DEBUG_MODE = false; // Set to false to remove debug overlay
+  let animationObserver = null;
+  let debugLog = [];
+
   /** @type {"en"|"es"} */
   let lang = getInitialLang();
 
@@ -30,11 +35,12 @@
   bindGlobalUI();
   initHeaderScroll();
   initTestimonialsCarousel();
+  initDentistsCarousel();
   
-  // Animations disabled for now
-  // setTimeout(() => {
-  //   initAnimations();
-  // }, 100);
+  // Initialize animations after content renders
+  setTimeout(() => {
+    initAnimations();
+  }, 100);
 
   // Re-bind accordion behavior when breakpoint flips
   MQ_DESKTOP_SERVICES.addEventListener("change", () => {
@@ -115,7 +121,7 @@
     renderFooter();
     renderStickyBar();
     applyStaticI18n();
-    refreshReveals();
+    refreshAnimations();
   }
 
   function applyStaticI18n() {
@@ -188,14 +194,29 @@
     if (group) group.setAttribute("aria-label", t("langToggle.label"));
   }
 
-  function telHref() {
+  function whatsappHref(message = "") {
     const digits = (cfg.practice.phoneTel || cfg.practice.phone || "").replace(/\D/g, "");
-    return digits ? `tel:+1${digits}` : "tel:";
+    if (!digits) return "#";
+    
+    // WhatsApp link format: https://wa.me/1234567890?text=Message
+    const baseUrl = `https://wa.me/1${digits}`;
+    if (message) {
+      const encodedMessage = encodeURIComponent(message);
+      return `${baseUrl}?text=${encodedMessage}`;
+    }
+    return baseUrl;
   }
 
   function renderBookCTAs() {
+    const bookMessage = lang === "es" 
+      ? "Hola, me gustaría agendar una cita" 
+      : "Hello, I would like to book an appointment";
+    
     document.querySelectorAll("[data-book-cta]").forEach((el) => {
-      el.href = telHref();
+      el.href = whatsappHref(bookMessage);
+      el.target = "_blank";
+      el.rel = "noopener noreferrer";
+      
       // Sticky / header / hero share the book label
       if (el.closest("[data-sticky-bar]")) {
         el.textContent = t("stickyBar.cta");
@@ -394,6 +415,14 @@
     }
 
     section.hidden = false;
+    
+    // Enable horizontal scroll for multiple dentists
+    if (dentists.length > 1) {
+      grid.setAttribute('data-scrollable', 'true');
+    } else {
+      grid.removeAttribute('data-scrollable');
+    }
+    
     grid.innerHTML = dentists
       .map((d) => {
         const initials = (d.name || "")
@@ -419,6 +448,88 @@
         </article>`;
       })
       .join("");
+  }
+
+  // -------------------------------------------------------------------------
+  // Dentists Carousel (for multiple dentists)
+  // -------------------------------------------------------------------------
+  function initDentistsCarousel() {
+    const grid = document.querySelector("[data-dentists-grid]");
+    if (!grid || grid.getAttribute('data-scrollable') !== 'true') return;
+    
+    const cards = grid.querySelectorAll('.dentist-card');
+    if (cards.length <= 1) return;
+    
+    let autoScrollInterval = null;
+    let isPaused = false;
+    let currentIndex = 0;
+    
+    function scrollToCard(index) {
+      const card = cards[index];
+      if (!card) return;
+      
+      grid.scrollTo({
+        left: card.offsetLeft,
+        behavior: 'smooth'
+      });
+    }
+    
+    function startAutoScroll() {
+      if (isPaused || autoScrollInterval) return;
+      
+      autoScrollInterval = setInterval(() => {
+        if (isPaused) return;
+        
+        currentIndex = (currentIndex + 1) % cards.length;
+        scrollToCard(currentIndex);
+      }, 5000); // Scroll every 5 seconds (longer for bio reading)
+    }
+    
+    function pauseAutoScroll() {
+      isPaused = true;
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
+    }
+    
+    function resumeAutoScroll() {
+      isPaused = false;
+      startAutoScroll();
+    }
+    
+    // Pause on hover/touch
+    grid.addEventListener('mouseenter', pauseAutoScroll);
+    grid.addEventListener('mouseleave', resumeAutoScroll);
+    grid.addEventListener('touchstart', pauseAutoScroll, { passive: true });
+    
+    // Pause when user manually scrolls
+    let scrollTimeout;
+    grid.addEventListener('scroll', () => {
+      pauseAutoScroll();
+      clearTimeout(scrollTimeout);
+      
+      // Update current index based on scroll position
+      scrollTimeout = setTimeout(() => {
+        const scrollLeft = grid.scrollLeft;
+        let closestIndex = 0;
+        let closestDist = Infinity;
+        
+        cards.forEach((card, i) => {
+          const dist = Math.abs(card.offsetLeft - scrollLeft);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestIndex = i;
+          }
+        });
+        
+        currentIndex = closestIndex;
+        resumeAutoScroll();
+      }, 7000); // Resume after 7 seconds (extra time for reading bios)
+    }, { passive: true });
+    
+    // Start auto-scrolling
+    startAutoScroll();
   }
 
   // -------------------------------------------------------------------------
@@ -539,6 +650,88 @@
       },
       { passive: true }
     );
+    
+    // Auto-scroll testimonials
+    initTestimonialsAutoScroll(track);
+  }
+
+  // -------------------------------------------------------------------------
+  // TESTIMONIALS AUTO-SCROLL
+  // -------------------------------------------------------------------------
+  function initTestimonialsAutoScroll(track) {
+    if (!track || prefersReducedMotion.matches) return;
+    
+    const cards = track.querySelectorAll('.testimonial-card');
+    if (cards.length === 0) return;
+    
+    let autoScrollInterval;
+    let isPaused = false;
+    let currentIndex = 0;
+    
+    function scrollToCard(index) {
+      const card = cards[index];
+      if (!card) return;
+      
+      track.scrollTo({
+        left: card.offsetLeft,
+        behavior: 'smooth'
+      });
+    }
+    
+    function startAutoScroll() {
+      if (isPaused) return;
+      
+      autoScrollInterval = setInterval(() => {
+        if (isPaused) return;
+        
+        currentIndex = (currentIndex + 1) % cards.length;
+        scrollToCard(currentIndex);
+      }, 3500); // Scroll every 3.5 seconds
+    }
+    
+    function pauseAutoScroll() {
+      isPaused = true;
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+      }
+    }
+    
+    function resumeAutoScroll() {
+      isPaused = false;
+      startAutoScroll();
+    }
+    
+    // Pause on hover/touch
+    track.addEventListener('mouseenter', pauseAutoScroll);
+    track.addEventListener('mouseleave', resumeAutoScroll);
+    track.addEventListener('touchstart', pauseAutoScroll, { passive: true });
+    
+    // Pause when user manually scrolls
+    let scrollTimeout;
+    track.addEventListener('scroll', () => {
+      pauseAutoScroll();
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        // Update currentIndex based on current scroll position
+        const cards = Array.from(track.querySelectorAll('.testimonial-card'));
+        let closestIndex = 0;
+        let closestDist = Infinity;
+        
+        cards.forEach((card, i) => {
+          const dist = Math.abs(card.offsetLeft - track.scrollLeft);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestIndex = i;
+          }
+        });
+        
+        currentIndex = closestIndex;
+        resumeAutoScroll();
+      }, 6000); // Resume after 6 seconds (longer for testimonials since they're text-heavy)
+    }, { passive: true });
+    
+    // Start auto-scrolling
+    startAutoScroll();
   }
 
   // -------------------------------------------------------------------------
@@ -615,7 +808,7 @@
         <h3 class="location__hours-title">${escapeHtml(t("location.hours"))}</h3>
         <ul class="location__hours">${hoursRows}</ul>
         <div class="location__actions">
-          <a class="btn btn--primary" href="${telHref()}">${escapeHtml(t("location.call"))}</a>
+          <a class="btn btn--primary" href="${whatsappHref(lang === 'es' ? 'Hola, tengo una pregunta' : 'Hello, I have a question')}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("location.call"))}</a>
           <a class="btn btn--secondary" href="${escapeAttr(mapsLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(
             t("location.directions")
           )}</a>
@@ -662,7 +855,7 @@
           <div>
             <h3>${escapeHtml(t("footer.contact"))}</h3>
             <ul class="site-footer__list">
-              <li><a href="${telHref()}">${escapeHtml(cfg.practice.phone || "")}</a></li>
+              <li><a href="${whatsappHref()}" target="_blank" rel="noopener noreferrer">${escapeHtml(cfg.practice.phone || "")}</a></li>
               ${
                 cfg.practice.email
                   ? `<li><a href="mailto:${escapeAttr(cfg.practice.email)}">${escapeHtml(
@@ -819,136 +1012,141 @@
 
   // -------------------------------------------------------------------------
   // Parallax — transform-based (iOS Safari friendly)
-  // Avoids background-attachment: fixed which causes jank/bugs on iOS.
-  // Uses rAF + translate3d; disabled when prefers-reduced-motion.
   // -------------------------------------------------------------------------
-  function initParallax() {
-    const hero = document.querySelector("[data-hero]");
-    const media = document.querySelector("[data-hero-media]");
+  // NOTE: Parallax is now handled by initFixedHeroBackground() in the animation system above
+
+  // =========================================================================
+  // SCROLL ANIMATIONS & EFFECTS
+  // =========================================================================
+
+  function initAnimations() {
+    if (prefersReducedMotion.matches) {
+      console.log('[Animations] Respecting prefers-reduced-motion');
+      return;
+    }
+
+    logDebug('Animation system initializing...');
+    
+    // 1. Hero entrance animation (on load, not scroll-triggered)
+    initHeroEntrance();
+    
+    // 2. Fixed hero background effect
+    initFixedHeroBackground();
+    
+    // 3. Scroll-triggered animations for all sections
+    initScrollAnimations();
+    
+    // 4. Gallery navigation
+    initGalleryNav();
+    
+    // 5. Show debug overlay if enabled
+    if (DEBUG_MODE) {
+      createDebugOverlay();
+    }
+    
+    logDebug('✓ Animation system ready');
+  }
+
+  // -------------------------------------------------------------------------
+  // HERO - Fixed background + slide-in entrance
+  // -------------------------------------------------------------------------
+  function initHeroEntrance() {
+    // Trigger hero content slide-in from right
+    setTimeout(() => {
+      document.body.classList.add('hero-loaded');
+      logDebug('hero-content: slide-right FIRED');
+    }, 150);
+  }
+
+  function initFixedHeroBackground() {
+    // JS-based fixed background (iOS Safari compatible)
+    // The background stays put while content scrolls over it
+    const hero = document.querySelector('[data-hero]');
+    const media = document.querySelector('[data-hero-media]');
+    
     if (!hero || !media) return;
 
     let ticking = false;
     let active = true;
 
-    // Pause parallax work when hero is offscreen
+    // Optimize with IntersectionObserver
     const io = new IntersectionObserver(
       ([entry]) => {
         active = entry.isIntersecting;
         if (!active) {
-          media.style.transform = "translate3d(0, 0, 0)";
+          media.style.transform = 'translate3d(0, 0, 0)';
         }
       },
-      { rootMargin: "20% 0px" }
+      { rootMargin: '50% 0px' }
     );
     io.observe(hero);
 
-    function update() {
+    function updateBackground() {
       ticking = false;
       if (!active || prefersReducedMotion.matches) {
-        media.style.transform = "translate3d(0, 0, 0)";
+        media.style.transform = 'translate3d(0, 0, 0)';
         return;
       }
 
       const rect = hero.getBoundingClientRect();
-      const heroHeight = rect.height || 1;
-      // Progress while hero is in view: 0 at top, increases as user scrolls down
-      const scrolled = Math.min(Math.max(-rect.top, 0), heroHeight);
-      // Slow factor — media drifts ~35% of scroll distance
-      const offset = scrolled * 0.35;
+      const viewportHeight = window.innerHeight;
+      
+      // Keep background fixed by counteracting scroll
+      // This creates the "fixed" effect without CSS background-attachment
+      const scrolled = Math.max(0, -rect.top);
+      const progress = Math.min(scrolled / viewportHeight, 1);
+      
+      // Slight parallax on the background (moves slower than scroll)
+      const offset = scrolled * 0.5;
       media.style.transform = `translate3d(0, ${offset.toFixed(2)}px, 0)`;
     }
 
     function onScroll() {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(update);
+      requestAnimationFrame(updateBackground);
     }
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    // iOS Safari: also listen to visualViewport when available
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", onScroll, { passive: true });
-      window.visualViewport.addEventListener("scroll", onScroll, { passive: true });
-    }
-
-    update();
-  }
-
-  // =========================================================================
-  // DISABLED: ANIMATION SYSTEM
-  // =========================================================================
-
-  let animationObserver = null;
-
-  function initAnimations() {
-    console.log('[Animations] DISABLED - All animations turned off');
-    // Just init gallery navigation
-    initGalleryNav();
-  }
-
-  // -------------------------------------------------------------------------
-  // 1. HERO - Load animations (not scroll-triggered)
-  // -------------------------------------------------------------------------
-  function initHeroAnimations() {
-    // Hero elements already have data-animate in HTML, just trigger them
-    const heroElements = document.querySelectorAll('.hero__content [data-animate]');
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
     
-    console.log('[Animations] Found', heroElements.length, 'hero elements to animate');
-    
-    // Trigger animations on load
-    setTimeout(() => {
-      heroElements.forEach(el => {
-        el.classList.add('in-view');
-        console.log('[Animations] Hero element animated:', el.className);
-        // Remove will-change after animation
-        setTimeout(() => el.classList.add('animated'), 650);
-      });
-    }, 150);
-
-    console.log('[Animations] Hero load animations triggered');
+    updateBackground();
   }
 
   // -------------------------------------------------------------------------
-  // 2. SCROLL ANIMATIONS - IntersectionObserver
+  // SCROLL-TRIGGERED ANIMATIONS
   // -------------------------------------------------------------------------
   function initScrollAnimations() {
-    // Set up observer with 20% threshold
     animationObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !entry.target.classList.contains('in-view')) {
+            const animType = entry.target.getAttribute('data-animate') || 'unknown';
+            const label = entry.target.getAttribute('data-anim-label') || animType;
+            
             entry.target.classList.add('in-view');
+            logDebug(`${label}: FIRED`);
             
             // Remove will-change after animation completes
             setTimeout(() => {
               entry.target.classList.add('animated');
-            }, 650);
+            }, 700);
 
-            // Unobserve after animating
+            // Unobserve after animating (one-time animation)
             animationObserver.unobserve(entry.target);
-            
-            console.log('[Animations] Triggered:', entry.target.getAttribute('data-animate'));
           }
         });
       },
       {
-        threshold: 0.2,
-        rootMargin: '0px'
+        threshold: 0.15,
+        rootMargin: '0px 0px -10% 0px'
       }
     );
 
-    // Observe all elements that need scroll animations
-    observeAllAnimatedElements();
-    
-    console.log('[Animations] Scroll observer initialized');
-  }
-
-  function observeAllAnimatedElements() {
-    // Find and set up animations for each section
+    // Set up all scroll animations
     setupTrustBarAnimations();
     setupServicesAnimations();
-    setupDentistAnimations();
+    setupDentistsAnimations();
     setupGalleryAnimations();
     setupTestimonialsAnimations();
     setupInsuranceAnimations();
@@ -958,68 +1156,67 @@
 
   // TRUST BAR - Staggered fade up
   function setupTrustBarAnimations() {
-    const trustItems = document.querySelectorAll('.trust__list li');
+    const trustItems = document.querySelectorAll('.trust__list .trust__item');
     trustItems.forEach((item, i) => {
       item.setAttribute('data-animate', 'slide-up');
-      item.style.transitionDelay = `${i * 100}ms`;
-      animationObserver.observe(item);
-    });
-  }
-
-  // SERVICES - Alternate slide direction
-  function setupServicesAnimations() {
-    const serviceCards = document.querySelectorAll('.service-card');
-    serviceCards.forEach((card, i) => {
-      const direction = i % 2 === 0 ? 'slide-left' : 'slide-right';
-      card.setAttribute('data-animate', direction);
-      card.style.transitionDelay = `${i * 120}ms`;
-      animationObserver.observe(card);
-    });
-  }
-
-  // DENTIST - Photo from left, text from right with offset
-  function setupDentistAnimations() {
-    const dentistPhoto = document.querySelector('.dentist-card__photo');
-    const dentistBody = document.querySelector('.dentist-card__body');
-    
-    if (dentistPhoto) {
-      dentistPhoto.setAttribute('data-animate', 'slide-left');
-      animationObserver.observe(dentistPhoto);
-    }
-    
-    if (dentistBody) {
-      dentistBody.setAttribute('data-animate', 'slide-right');
-      dentistBody.style.transitionDelay = '150ms';
-      animationObserver.observe(dentistBody);
-    }
-  }
-
-  // GALLERY - Fade scale staggered
-  function setupGalleryAnimations() {
-    const galleryItems = document.querySelectorAll('.gallery__item');
-    galleryItems.forEach((item, i) => {
-      item.setAttribute('data-animate', 'fade-scale');
+      item.setAttribute('data-anim-label', `trust-item-${i + 1}`);
       item.style.transitionDelay = `${i * 80}ms`;
       animationObserver.observe(item);
     });
   }
 
-  // TESTIMONIALS - Fade up staggered
+  // SERVICES - Alternating left/right with stagger
+  function setupServicesAnimations() {
+    const serviceCards = document.querySelectorAll('.service-card');
+    serviceCards.forEach((card, i) => {
+      const direction = i % 2 === 0 ? 'slide-left' : 'slide-right';
+      card.setAttribute('data-animate', direction);
+      card.setAttribute('data-anim-label', `service-card-${i + 1}-${direction}`);
+      card.style.transitionDelay = `${i * 100}ms`;
+      animationObserver.observe(card);
+    });
+  }
+
+  // DENTISTS - Entire card slides in
+  function setupDentistsAnimations() {
+    const dentistCards = document.querySelectorAll('.dentist-card');
+    dentistCards.forEach((card, i) => {
+      const direction = i % 2 === 0 ? 'slide-left' : 'slide-right';
+      card.setAttribute('data-animate', direction);
+      card.setAttribute('data-anim-label', `dentist-card-${i + 1}`);
+      animationObserver.observe(card);
+    });
+  }
+
+  // GALLERY - Scale + fade with stagger
+  function setupGalleryAnimations() {
+    const galleryItems = document.querySelectorAll('.gallery__item');
+    galleryItems.forEach((item, i) => {
+      item.setAttribute('data-animate', 'fade-scale');
+      item.setAttribute('data-anim-label', `gallery-item-${i + 1}`);
+      item.style.transitionDelay = `${Math.min(i * 60, 400)}ms`;
+      animationObserver.observe(item);
+    });
+  }
+
+  // TESTIMONIALS - Fade up with stagger
   function setupTestimonialsAnimations() {
     const testimonialCards = document.querySelectorAll('.testimonial-card');
     testimonialCards.forEach((card, i) => {
       card.setAttribute('data-animate', 'slide-up');
+      card.setAttribute('data-anim-label', `testimonial-${i + 1}`);
       card.style.transitionDelay = `${i * 120}ms`;
       animationObserver.observe(card);
     });
   }
 
-  // INSURANCE - Fade as group
+  // INSURANCE - Simple fade for the entire grid
   function setupInsuranceAnimations() {
-    const logoList = document.querySelector('.insurance__logos');
-    if (logoList) {
-      logoList.setAttribute('data-animate', 'fade');
-      animationObserver.observe(logoList);
+    const logoGrid = document.querySelector('.insurance__logos');
+    if (logoGrid) {
+      logoGrid.setAttribute('data-animate', 'fade');
+      logoGrid.setAttribute('data-anim-label', 'insurance-logos');
+      animationObserver.observe(logoGrid);
     }
   }
 
@@ -1028,6 +1225,7 @@
     const locationCard = document.querySelector('.location__card');
     if (locationCard) {
       locationCard.setAttribute('data-animate', 'slide-up');
+      locationCard.setAttribute('data-anim-label', 'location-card');
       animationObserver.observe(locationCard);
     }
   }
@@ -1035,22 +1233,83 @@
   // SECTION HEADERS - Fade up
   function setupSectionHeaders() {
     const headers = document.querySelectorAll('.section__header');
-    headers.forEach(header => {
+    headers.forEach((header, i) => {
+      const section = header.closest('[data-section]');
+      const sectionName = section ? section.getAttribute('data-section') : `section-${i}`;
       header.setAttribute('data-animate', 'slide-up');
+      header.setAttribute('data-anim-label', `${sectionName}-header`);
       animationObserver.observe(header);
     });
   }
 
-  // Re-observe new elements after content updates (language change, etc.)
+  // Re-initialize animations after content changes (language swap)
   function refreshAnimations() {
     if (!animationObserver || prefersReducedMotion.matches) return;
-    observeAllAnimatedElements();
+    
+    // Clear previous animations
+    document.querySelectorAll('[data-animate]').forEach(el => {
+      el.classList.remove('in-view', 'animated');
+      el.style.transitionDelay = '';
+    });
+    
+    // Re-setup
+    setupTrustBarAnimations();
+    setupServicesAnimations();
+    setupDentistsAnimations();
+    setupGalleryAnimations();
+    setupTestimonialsAnimations();
+    setupInsuranceAnimations();
+    setupLocationAnimations();
+    setupSectionHeaders();
   }
 
-  // Note: Hero parallax is handled by existing initParallax() function below
+  // -------------------------------------------------------------------------
+  // DEBUG OVERLAY
+  // -------------------------------------------------------------------------
+  function logDebug(message) {
+    console.log(`[Animations] ${message}`);
+    if (DEBUG_MODE) {
+      debugLog.push({
+        message,
+        time: Date.now(),
+        isFired: message.includes('FIRED')
+      });
+      updateDebugOverlay();
+    }
+  }
+
+  function createDebugOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'anim-debug';
+    overlay.innerHTML = `
+      <div class="debug-title">🎬 Animation Debug</div>
+      <div class="debug-content"></div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Instructions
+    console.log('%c═══════════════════════════════════════', 'color: #fbbf24');
+    console.log('%c🎬 ANIMATION DEBUG MODE ACTIVE', 'color: #4ade80; font-weight: bold; font-size: 14px');
+    console.log('%cTo disable: Open js/app.js and set DEBUG_MODE = false', 'color: #60a5fa');
+    console.log('%c═══════════════════════════════════════', 'color: #fbbf24');
+  }
+
+  function updateDebugOverlay() {
+    const content = document.querySelector('#anim-debug .debug-content');
+    if (!content) return;
+    
+    // Show last 12 entries
+    const recent = debugLog.slice(-12);
+    content.innerHTML = recent
+      .map(entry => {
+        const className = entry.isFired ? 'debug-log fired' : 'debug-log';
+        return `<div class="${className}">→ ${entry.message}</div>`;
+      })
+      .join('');
+  }
 
   // -------------------------------------------------------------------------
-  // 4. GALLERY NAVIGATION
+  // GALLERY NAVIGATION
   // -------------------------------------------------------------------------
   function initGalleryNav() {
     const scroller = document.querySelector('[data-gallery-scroller]');
@@ -1068,15 +1327,63 @@
     }
 
     function scrollToNext() {
-      const itemWidth = scroller.querySelector('.gallery__item')?.offsetWidth || 0;
-      const gap = 17;
-      scroller.scrollBy({ left: itemWidth + gap, behavior: 'smooth' });
+      const items = scroller.querySelectorAll('.gallery__item');
+      if (items.length === 0) return;
+      
+      const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+      let nextItem = null;
+      
+      // Find the next item after the current center position
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+        if (itemCenter > scrollerCenter + 50) {
+          nextItem = item;
+          break;
+        }
+      }
+      
+      if (nextItem) {
+        const itemLeft = nextItem.offsetLeft;
+        const itemWidth = nextItem.offsetWidth;
+        const scrollerWidth = scroller.clientWidth;
+        const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
+        
+        scroller.scrollTo({
+          left: Math.max(0, scrollPosition),
+          behavior: prefersReducedMotion.matches ? 'auto' : 'smooth'
+        });
+      }
     }
 
     function scrollToPrev() {
-      const itemWidth = scroller.querySelector('.gallery__item')?.offsetWidth || 0;
-      const gap = 17;
-      scroller.scrollBy({ left: -(itemWidth + gap), behavior: 'smooth' });
+      const items = scroller.querySelectorAll('.gallery__item');
+      if (items.length === 0) return;
+      
+      const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+      let prevItem = null;
+      
+      // Find the previous item before the current center position
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+        if (itemCenter < scrollerCenter - 50) {
+          prevItem = item;
+          break;
+        }
+      }
+      
+      if (prevItem) {
+        const itemLeft = prevItem.offsetLeft;
+        const itemWidth = prevItem.offsetWidth;
+        const scrollerWidth = scroller.clientWidth;
+        const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
+        
+        scroller.scrollTo({
+          left: Math.max(0, scrollPosition),
+          behavior: prefersReducedMotion.matches ? 'auto' : 'smooth'
+        });
+      }
     }
 
     nextBtn.addEventListener('click', scrollToNext);
@@ -1084,6 +1391,97 @@
     scroller.addEventListener('scroll', updateButtons, { passive: true });
     
     updateButtons();
+    
+    // Auto-scroll gallery continuously
+    initGalleryAutoScroll(scroller);
+  }
+
+  // -------------------------------------------------------------------------
+  // GALLERY AUTO-SCROLL - Rebuilt for reliability
+  // -------------------------------------------------------------------------
+  function initGalleryAutoScroll(scroller) {
+    if (!scroller || prefersReducedMotion.matches) return;
+    
+    const items = scroller.querySelectorAll('.gallery__item');
+    if (items.length === 0) return;
+    
+    let autoScrollInterval = null;
+    let isPaused = false;
+    let currentIndex = 0;
+    
+    function scrollToIndex(index) {
+      const item = items[index];
+      if (!item) return;
+      
+      // Calculate scroll position to center the item
+      const itemLeft = item.offsetLeft;
+      const itemWidth = item.offsetWidth;
+      const scrollerWidth = scroller.clientWidth;
+      const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
+      
+      scroller.scrollTo({
+        left: Math.max(0, scrollPosition),
+        behavior: 'smooth'
+      });
+    }
+    
+    function startAutoScroll() {
+      if (isPaused || autoScrollInterval) return;
+      
+      autoScrollInterval = setInterval(() => {
+        if (isPaused) return;
+        
+        currentIndex = (currentIndex + 1) % items.length;
+        scrollToIndex(currentIndex);
+      }, 3000); // Scroll every 3 seconds
+    }
+    
+    function pauseAutoScroll() {
+      isPaused = true;
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
+    }
+    
+    function resumeAutoScroll() {
+      isPaused = false;
+      startAutoScroll();
+    }
+    
+    // Pause on hover/touch
+    scroller.addEventListener('mouseenter', pauseAutoScroll);
+    scroller.addEventListener('mouseleave', resumeAutoScroll);
+    scroller.addEventListener('touchstart', pauseAutoScroll, { passive: true });
+    
+    // Pause when user manually scrolls
+    let scrollTimeout;
+    scroller.addEventListener('scroll', () => {
+      pauseAutoScroll();
+      clearTimeout(scrollTimeout);
+      
+      // Update current index based on scroll position
+      scrollTimeout = setTimeout(() => {
+        const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+        let closestIndex = 0;
+        let closestDistance = Infinity;
+        
+        items.forEach((item, index) => {
+          const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+          const distance = Math.abs(scrollerCenter - itemCenter);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestIndex = index;
+          }
+        });
+        
+        currentIndex = closestIndex;
+        resumeAutoScroll();
+      }, 5000); // Resume after 5 seconds
+    }, { passive: true });
+    
+    // Start auto-scrolling
+    startAutoScroll();
   }
 
   // -------------------------------------------------------------------------
