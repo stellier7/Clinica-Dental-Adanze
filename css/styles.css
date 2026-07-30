@@ -227,6 +227,36 @@ textarea {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(215, 226, 234, 0.7);
+  transform: translate3d(0, 0, 0);
+  transition: transform 280ms var(--ease-out), box-shadow 280ms ease,
+    background-color 280ms ease, border-color 280ms ease;
+  will-change: transform;
+}
+
+/* Compact / elevated state once the page has scrolled */
+.site-header.is-scrolled {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Hide on scroll-down; reveal on scroll-up (JS toggles .is-hidden) */
+.site-header.is-hidden {
+  transform: translate3d(0, calc(-100% - 1px), 0);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Keep header visible while the mobile menu is open */
+body.nav-open .site-header,
+body.nav-open .site-header.is-hidden {
+  transform: translate3d(0, 0, 0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
 }
 
 .site-header__inner {

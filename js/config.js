@@ -81,8 +81,8 @@ const config = {
     // OPTIONAL — path or URL to logo (leave blank to show practice name as text logo)
     logoUrl: "",
     // REQUIRED — full-bleed hero image (place file in /assets/images/)
-    heroImageUrl:
-      "https://images.unsplash.com/photo-1629909615184-74f495363b45?auto=format&fit=crop&w=1800&q=80",
+    // Demo template image included — replace per client
+    heroImageUrl: "assets/images/hero.jpg",
   },
 
   // ---------------------------------------------------------------------------
@@ -250,8 +250,8 @@ const config = {
         es: "La Dra. Morales ha cuidado a familias de Miami por más de una década. Cree que una gran odontología empieza escuchando — y que cada visita debe sentirse calmada, clara y cercana.",
       },
       // OPTIONAL — path/URL; leave blank for initials placeholder
-      photoUrl:
-        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80",
+      // Demo template image included — replace per client
+      photoUrl: "assets/images/dentist.jpg",
     },
   ],
 
@@ -375,12 +375,13 @@ const config = {
   // SMILE GALLERY
   // ---------------------------------------------------------------------------
   // OPTIONAL — empty array hides the Gallery section.
+  // Demo template images included — replace per client
   gallery: [
-    "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?auto=format&fit=crop&w=900&q=80",
+    "assets/images/gallery/smile-01.jpg",
+    "assets/images/gallery/smile-02.jpg",
+    "assets/images/gallery/smile-03.jpg",
+    "assets/images/gallery/smile-04.jpg",
+    "assets/images/gallery/smile-05.jpg",
   ],
 
   // ---------------------------------------------------------------------------

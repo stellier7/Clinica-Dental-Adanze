@@ -28,6 +28,7 @@
   applyBranding();
   renderAll();
   bindGlobalUI();
+  initHeaderScroll();
   initParallax();
   initScrollReveals();
   initTestimonialsCarousel();
@@ -755,6 +756,62 @@
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-label", t("nav.openMenu"));
     document.body.classList.remove("nav-open");
+  }
+
+  // -------------------------------------------------------------------------
+  // Header — hide on scroll down, show on scroll up (iOS-friendly)
+  // -------------------------------------------------------------------------
+  function initHeaderScroll() {
+    const header = document.querySelector(".site-header");
+    if (!header) return;
+
+    let lastY = window.scrollY || 0;
+    let ticking = false;
+    const showAtTop = 24;
+    const deltaMin = 8;
+
+    function update() {
+      ticking = false;
+      const y = window.scrollY || 0;
+      const delta = y - lastY;
+
+      header.classList.toggle("is-scrolled", y > showAtTop);
+
+      // Always show near the top of the page, or when the mobile nav is open
+      if (y <= showAtTop || document.body.classList.contains("nav-open")) {
+        header.classList.remove("is-hidden");
+        lastY = y;
+        return;
+      }
+
+      if (prefersReducedMotion.matches) {
+        header.classList.remove("is-hidden");
+        lastY = y;
+        return;
+      }
+
+      if (Math.abs(delta) < deltaMin) return;
+
+      if (delta > 0) {
+        // Scrolling down — tuck the header away
+        header.classList.add("is-hidden");
+        closeNav();
+      } else {
+        // Scrolling up — bring it back
+        header.classList.remove("is-hidden");
+      }
+
+      lastY = y;
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    update();
   }
 
   // -------------------------------------------------------------------------

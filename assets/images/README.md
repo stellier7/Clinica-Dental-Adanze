@@ -2,11 +2,28 @@
 
 Drop client media here and reference the paths from `js/config.js`.
 
-Suggested files:
+## Demo template images (included)
 
-- `hero.jpg` — full-bleed hero photo (`branding.heroImageUrl`)
-- `dentist-*.jpg` — team headshots (`dentists[].photoUrl`)
-- `gallery/` — smile / office photos (`gallery[]`)
-- `insurance/` — provider logos (`insuranceLogos[]`)
+These ship with the template so the site looks complete out of the box.
+**Replace them** before going live for a real practice.
 
-Demo insurance SVGs are included. Hero, dentist, and gallery demo images use remote Unsplash URLs in `config.js` until you replace them.
+| File | Used for |
+| --- | --- |
+| `hero.jpg` | Hero background (`branding.heroImageUrl`) |
+| `dentist.jpg` | Dentist photo (`dentists[].photoUrl`) |
+| `gallery/smile-01.jpg` … `smile-05.jpg` | Smile gallery (`gallery[]`) |
+| `insurance/*.svg` | Insurance logo placeholders |
+
+## Per-client layout
+
+```
+assets/images/
+  hero.jpg
+  dentist-*.jpg
+  gallery/
+    smile-01.jpg
+    …
+  insurance/
+    delta-dental.svg
+    …
+```
