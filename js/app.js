@@ -911,43 +911,20 @@
   // 1. HERO - Load animations (not scroll-triggered)
   // -------------------------------------------------------------------------
   function initHeroAnimations() {
-    const heading = document.querySelector('.hero__title');
-    const tagline = document.querySelector('.hero__tagline');
-    const badge = document.querySelector('.hero__badge');
-    const cta = document.querySelector('.hero__actions .btn');
-
-    // Wrap heading + tagline in animated container
-    if (heading) {
-      heading.setAttribute('data-animate', 'hero-heading');
-      setTimeout(() => {
-        heading.classList.add('in-view');
-        setTimeout(() => heading.classList.add('animated'), 650);
-      }, 100);
-    }
-
-    if (tagline) {
-      tagline.setAttribute('data-animate', 'hero-heading');
-      setTimeout(() => {
-        tagline.classList.add('in-view');
-        setTimeout(() => tagline.classList.add('animated'), 650);
-      }, 100);
-    }
-
-    if (badge) {
-      badge.setAttribute('data-animate', 'hero-heading');
-      setTimeout(() => {
-        badge.classList.add('in-view');
-        setTimeout(() => badge.classList.add('animated'), 650);
-      }, 100);
-    }
-
-    if (cta) {
-      cta.setAttribute('data-animate', 'hero-cta');
-      setTimeout(() => {
-        cta.classList.add('in-view');
-        setTimeout(() => cta.classList.add('animated'), 850);
-      }, 100);
-    }
+    // Hero elements already have data-animate in HTML, just trigger them
+    const heroElements = document.querySelectorAll('.hero__content [data-animate]');
+    
+    console.log('[Animations] Found', heroElements.length, 'hero elements to animate');
+    
+    // Trigger animations on load
+    setTimeout(() => {
+      heroElements.forEach(el => {
+        el.classList.add('in-view');
+        console.log('[Animations] Hero element animated:', el.className);
+        // Remove will-change after animation
+        setTimeout(() => el.classList.add('animated'), 650);
+      });
+    }, 150);
 
     console.log('[Animations] Hero load animations triggered');
   }
