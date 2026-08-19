@@ -62,8 +62,6 @@ const config = {
     // OPTIONAL — trust bar stats (leave a field blank to hide that trust item)
     yearsInPractice: "15+",
     patientRating: "4.9",
-    // OPTIONAL — short insurance blurb for trust bar
-    insuranceAccepted: true,
   },
 
   // ---------------------------------------------------------------------------
@@ -97,7 +95,7 @@ const config = {
         dentists: "Our Team",
         gallery: "Gallery",
         testimonials: "Reviews",
-        insurance: "Insurance",
+        financing: "Financing",
         location: "Location",
         book: "Book Appointment",
         openMenu: "Open menu",
@@ -110,7 +108,6 @@ const config = {
       trust: {
         years: "Years in practice",
         rating: "Patient rating",
-        insurance: "Insurance accepted",
         licensed: "Licensed & certified",
       },
       sections: {
@@ -122,8 +119,8 @@ const config = {
         galleryLead: "Real results from patients like you.",
         testimonials: "What Patients Say",
         testimonialsLead: "Trusted by families in our community.",
-        insurance: "Insurance & Financing",
-        insuranceLead: "We work with major providers to keep care accessible.",
+        financing: "Financing",
+        financingLead: "Flexible payment options to fit your budget.",
         location: "Visit Us",
         locationLead: "Conveniently located — we look forward to seeing you.",
       },
@@ -168,7 +165,7 @@ const config = {
         dentists: "Nuestro Equipo",
         gallery: "Galería",
         testimonials: "Opiniones",
-        insurance: "Seguros",
+        financing: "Financiamiento",
         location: "Ubicación",
         book: "Agendar Cita",
         openMenu: "Abrir menú",
@@ -181,7 +178,6 @@ const config = {
       trust: {
         years: "Años de experiencia",
         rating: "Calificación de pacientes",
-        insurance: "Aceptamos seguros",
         licensed: "Licenciados y certificados",
       },
       sections: {
@@ -193,8 +189,8 @@ const config = {
         galleryLead: "Resultados reales de pacientes como tú.",
         testimonials: "Lo Que Dicen Nuestros Pacientes",
         testimonialsLead: "La confianza de familias de nuestra comunidad.",
-        insurance: "Seguros y Financiamiento",
-        insuranceLead: "Trabajamos con las principales aseguradoras.",
+        financing: "Financiamiento",
+        financingLead: "Opciones de pago flexibles que se adaptan a tu presupuesto.",
         location: "Visítanos",
         locationLead: "Ubicación conveniente — te esperamos con gusto.",
       },
@@ -344,30 +340,24 @@ const config = {
   ],
 
   // ---------------------------------------------------------------------------
-  // INSURANCE LOGOS
+  // FINANCING IMAGES
   // ---------------------------------------------------------------------------
-  // OPTIONAL — array of image URLs/paths. Empty array hides Insurance section.
-  // Tip: drop SVGs/PNGs in /assets/images/insurance/ and reference them here.
-  insuranceLogos: [
+  // OPTIONAL — two images for the Financing section. Empty array hides the section.
+  // Upload JPGs/PNGs to /assets/images/financing/ (see README in that folder).
+  financingImages: [
     {
-      name: "Delta Dental",
-      src: "assets/images/insurance/delta-dental.svg",
+      src: "assets/images/financing/financing-01.svg",
+      alt: {
+        en: "Flexible payment plans",
+        es: "Planes de pago flexibles",
+      },
     },
     {
-      name: "Cigna",
-      src: "assets/images/insurance/cigna.svg",
-    },
-    {
-      name: "Aetna",
-      src: "assets/images/insurance/aetna.svg",
-    },
-    {
-      name: "MetLife",
-      src: "assets/images/insurance/metlife.svg",
-    },
-    {
-      name: "Guardian",
-      src: "assets/images/insurance/guardian.svg",
+      src: "assets/images/financing/financing-02.svg",
+      alt: {
+        en: "CareCredit and payment options",
+        es: "CareCredit y opciones de pago",
+      },
     },
   ],
 

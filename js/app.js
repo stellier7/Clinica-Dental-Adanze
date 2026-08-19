@@ -116,7 +116,7 @@
     renderDentists();
     renderGallery();
     renderTestimonials();
-    renderInsurance();
+    renderFinancing();
     renderLocation();
     renderFooter();
     renderStickyBar();
@@ -161,7 +161,7 @@
       { href: "#dentists", key: "nav.dentists", section: "dentists" },
       { href: "#gallery", key: "nav.gallery", section: "gallery" },
       { href: "#testimonials", key: "nav.testimonials", section: "testimonials" },
-      { href: "#insurance", key: "nav.insurance", section: "insurance" },
+      { href: "#financing", key: "nav.financing", section: "financing" },
       { href: "#location", key: "nav.location", section: "location" },
     ].filter((item) => isSectionVisible(item.section));
 
@@ -280,14 +280,7 @@
         label: t("trust.rating"),
       });
     }
-    if (cfg.practice.insuranceAccepted) {
-      items.push({
-        icon: iconShield(),
-        value: t("trust.insurance"),
-        label: "",
-      });
-    }
-    // Always show licensed when trust bar has anything else; still configurable via presence of other items
+    // Always show licensed when trust bar has anything else
     if (items.length) {
       items.push({
         icon: iconBadge(),
@@ -780,30 +773,32 @@
   }
 
   // -------------------------------------------------------------------------
-  // Insurance
+  // Financing
   // -------------------------------------------------------------------------
-  function renderInsurance() {
-    const section = document.querySelector('[data-section="insurance"]');
-    const list = document.querySelector("[data-insurance-logos]");
-    if (!section || !list) return;
+  function renderFinancing() {
+    const section = document.querySelector('[data-section="financing"]');
+    const grid = document.querySelector("[data-financing-grid]");
+    if (!section || !grid) return;
 
-    const logos = Array.isArray(cfg.insuranceLogos) ? cfg.insuranceLogos.filter(Boolean) : [];
-    if (!logos.length) {
+    const images = Array.isArray(cfg.financingImages) ? cfg.financingImages.filter(Boolean) : [];
+    if (!images.length) {
       section.hidden = true;
       return;
     }
 
     section.hidden = false;
-    list.innerHTML = logos
-      .map((logo) => {
-        // Support string URLs or { name, src } objects
-        const src = typeof logo === "string" ? logo : logo.src;
-        const name = typeof logo === "string" ? "Insurance" : logo.name || "Insurance";
+    grid.innerHTML = images
+      .map((image) => {
+        const src = typeof image === "string" ? image : image.src;
         if (!src) return "";
+        const alt =
+          typeof image === "string"
+            ? t("sections.financing")
+            : localized(image.alt) || t("sections.financing");
         return `
-        <li>
-          <img src="${escapeAttr(src)}" alt="${escapeAttr(name)}" loading="lazy" decoding="async" />
-        </li>`;
+        <figure class="financing__item">
+          <img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" loading="lazy" decoding="async" />
+        </figure>`;
       })
       .join("");
   }
@@ -943,8 +938,8 @@
         return Array.isArray(cfg.gallery) && cfg.gallery.length > 0;
       case "testimonials":
         return Array.isArray(cfg.testimonials) && cfg.testimonials.length > 0;
-      case "insurance":
-        return Array.isArray(cfg.insuranceLogos) && cfg.insuranceLogos.length > 0;
+      case "financing":
+        return Array.isArray(cfg.financingImages) && cfg.financingImages.length > 0;
       case "location":
         return Boolean(cfg.practice.address?.street || cfg.practice.phone);
       default:
@@ -1185,7 +1180,7 @@
       dentists: 0.08,
       gallery: 0.11,
       testimonials: 0.09,
-      insurance: 0.07,
+      financing: 0.07,
       location: 0.08,
     };
 
@@ -1258,7 +1253,7 @@
     setupDentistsAnimations();
     setupGalleryAnimations();
     setupTestimonialsAnimations();
-    setupInsuranceAnimations();
+    setupFinancingAnimations();
     setupLocationAnimations();
     setupSectionHeaders();
     setupFooterAnimations();
@@ -1320,14 +1315,14 @@
     });
   }
 
-  // INSURANCE - Staggered scale fade per logo
-  function setupInsuranceAnimations() {
-    const logos = document.querySelectorAll('.insurance__logos li');
-    logos.forEach((logo, i) => {
-      logo.setAttribute('data-animate', 'fade-scale');
-      logo.setAttribute('data-anim-label', `insurance-logo-${i + 1}`);
-      logo.style.transitionDelay = `${i * 70}ms`;
-      animationObserver.observe(logo);
+  // FINANCING - Staggered scale fade per image
+  function setupFinancingAnimations() {
+    const items = document.querySelectorAll('.financing__item');
+    items.forEach((item, i) => {
+      item.setAttribute('data-animate', 'fade-scale');
+      item.setAttribute('data-anim-label', `financing-image-${i + 1}`);
+      item.style.transitionDelay = `${i * 120}ms`;
+      animationObserver.observe(item);
     });
   }
 
@@ -1379,7 +1374,7 @@
     setupDentistsAnimations();
     setupGalleryAnimations();
     setupTestimonialsAnimations();
-    setupInsuranceAnimations();
+    setupFinancingAnimations();
     setupLocationAnimations();
     setupSectionHeaders();
     setupFooterAnimations();
