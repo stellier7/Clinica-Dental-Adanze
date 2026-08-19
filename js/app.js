@@ -1058,7 +1058,7 @@
   // -------------------------------------------------------------------------
   // Parallax — transform-based (iOS Safari friendly)
   // -------------------------------------------------------------------------
-  // NOTE: Parallax is now handled by initFixedHeroBackground() in the animation system above
+  // Handled by initHeroParallax() and initSectionParallax() in the animation system
 
   // =========================================================================
   // SCROLL ANIMATIONS & EFFECTS
@@ -1067,6 +1067,7 @@
   function initAnimations() {
     if (prefersReducedMotion.matches) {
       console.log('[Animations] Respecting prefers-reduced-motion');
+      document.body.classList.add('hero-loaded');
       return;
     }
 
@@ -1075,16 +1076,19 @@
     // 1. Hero entrance animation (on load, not scroll-triggered)
     initHeroEntrance();
     
-    // 2. Fixed hero background effect
-    initFixedHeroBackground();
+    // 2. Hero parallax — media, veil, and content depth layers
+    initHeroParallax();
     
-    // 3. Scroll-triggered animations for all sections
+    // 3. Section background parallax on scroll
+    initSectionParallax();
+    
+    // 4. Scroll-triggered animations for all sections
     initScrollAnimations();
     
-    // 4. Gallery navigation
+    // 5. Gallery navigation
     initGalleryNav();
     
-    // 5. Show debug overlay if enabled
+    // 6. Show debug overlay if enabled
     if (DEBUG_MODE) {
       createDebugOverlay();
     }
@@ -1096,66 +1100,126 @@
   // HERO - Fixed background + slide-in entrance
   // -------------------------------------------------------------------------
   function initHeroEntrance() {
-    // Trigger hero content slide-in from right
+    // Trigger hero content slide-in from left
     setTimeout(() => {
       document.body.classList.add('hero-loaded');
-      logDebug('hero-content: slide-right FIRED');
+      logDebug('hero-content: slide-left FIRED');
     }, 150);
   }
 
-  function initFixedHeroBackground() {
-    // JS-based fixed background (iOS Safari compatible)
-    // The background stays put while content scrolls over it
+  function initHeroParallax() {
     const hero = document.querySelector('[data-hero]');
     const media = document.querySelector('[data-hero-media]');
-    
+    const veil = document.querySelector('.hero__veil');
+    const content = document.querySelector('.hero__content');
+
     if (!hero || !media) return;
 
     let ticking = false;
     let active = true;
 
-    // Optimize with IntersectionObserver
     const io = new IntersectionObserver(
       ([entry]) => {
         active = entry.isIntersecting;
         if (!active) {
-          media.style.transform = 'translate3d(0, 0, 0)';
+          media.style.transform = 'translate3d(0, 0, 0) scale(1)';
+          if (veil) veil.style.setProperty('--hero-veil-y', '0px');
+          if (content) content.style.setProperty('--hero-content-y', '0px');
         }
       },
       { rootMargin: '50% 0px' }
     );
     io.observe(hero);
 
-    function updateBackground() {
+    function updateHeroParallax() {
       ticking = false;
       if (!active || prefersReducedMotion.matches) {
-        media.style.transform = 'translate3d(0, 0, 0)';
+        media.style.transform = 'translate3d(0, 0, 0) scale(1)';
+        if (veil) veil.style.setProperty('--hero-veil-y', '0px');
+        if (content) content.style.setProperty('--hero-content-y', '0px');
         return;
       }
 
       const rect = hero.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      
-      // Keep background fixed by counteracting scroll
-      // This creates the "fixed" effect without CSS background-attachment
       const scrolled = Math.max(0, -rect.top);
-      const progress = Math.min(scrolled / viewportHeight, 1);
-      
-      // Slight parallax on the background (moves slower than scroll)
-      const offset = scrolled * 0.5;
-      media.style.transform = `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+      const heroHeight = Math.max(rect.height, 1);
+      const progress = Math.min(scrolled / heroHeight, 1);
+
+      // Background moves slower than scroll — classic parallax
+      const mediaOffset = scrolled * 0.45;
+      const scale = 1 + progress * 0.08;
+      media.style.transform = `translate3d(0, ${mediaOffset.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+
+      // Veil drifts gently for layered depth
+      if (veil) {
+        veil.style.setProperty('--hero-veil-y', `${(scrolled * 0.2).toFixed(2)}px`);
+      }
+
+      // Foreground text moves slightly faster than the image
+      if (content) {
+        content.style.setProperty('--hero-content-y', `${(scrolled * 0.28).toFixed(2)}px`);
+      }
     }
 
     function onScroll() {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(updateBackground);
+      requestAnimationFrame(updateHeroParallax);
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
-    
-    updateBackground();
+    updateHeroParallax();
+  }
+
+  function initSectionParallax() {
+    const parallaxSections = document.querySelectorAll(
+      '[data-section], [data-section="trust"], .trust'
+    );
+
+    if (!parallaxSections.length) return;
+
+    const speeds = {
+      trust: 0.05,
+      services: 0.1,
+      dentists: 0.08,
+      gallery: 0.11,
+      testimonials: 0.09,
+      insurance: 0.07,
+      location: 0.08,
+    };
+
+    let ticking = false;
+
+    function updateSectionParallax() {
+      ticking = false;
+      if (prefersReducedMotion.matches) {
+        parallaxSections.forEach((section) => section.style.removeProperty('--parallax-y'));
+        return;
+      }
+
+      const viewportCenter = window.innerHeight * 0.5;
+
+      parallaxSections.forEach((section) => {
+        const key = section.getAttribute('data-section') || 'trust';
+        const speed = speeds[key] ?? 0.08;
+        const rect = section.getBoundingClientRect();
+        const sectionCenter = rect.top + rect.height * 0.5;
+        const distance = sectionCenter - viewportCenter;
+        const offset = distance * speed * -0.35;
+        section.style.setProperty('--parallax-y', `${offset.toFixed(2)}px`);
+      });
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(updateSectionParallax);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    updateSectionParallax();
   }
 
   // -------------------------------------------------------------------------
@@ -1197,6 +1261,7 @@
     setupInsuranceAnimations();
     setupLocationAnimations();
     setupSectionHeaders();
+    setupFooterAnimations();
   }
 
   // TRUST BAR - Staggered fade up
@@ -1255,14 +1320,15 @@
     });
   }
 
-  // INSURANCE - Simple fade for the entire grid
+  // INSURANCE - Staggered scale fade per logo
   function setupInsuranceAnimations() {
-    const logoGrid = document.querySelector('.insurance__logos');
-    if (logoGrid) {
-      logoGrid.setAttribute('data-animate', 'fade');
-      logoGrid.setAttribute('data-anim-label', 'insurance-logos');
-      animationObserver.observe(logoGrid);
-    }
+    const logos = document.querySelectorAll('.insurance__logos li');
+    logos.forEach((logo, i) => {
+      logo.setAttribute('data-animate', 'fade-scale');
+      logo.setAttribute('data-anim-label', `insurance-logo-${i + 1}`);
+      logo.style.transitionDelay = `${i * 70}ms`;
+      animationObserver.observe(logo);
+    });
   }
 
   // LOCATION - Fade up
@@ -1287,6 +1353,16 @@
     });
   }
 
+  // FOOTER - Fade up on scroll
+  function setupFooterAnimations() {
+    const footerInner = document.querySelector('.site-footer__inner');
+    if (footerInner) {
+      footerInner.setAttribute('data-animate', 'slide-up');
+      footerInner.setAttribute('data-anim-label', 'footer');
+      animationObserver.observe(footerInner);
+    }
+  }
+
   // Re-initialize animations after content changes (language swap)
   function refreshAnimations() {
     if (!animationObserver || prefersReducedMotion.matches) return;
@@ -1306,10 +1382,8 @@
     setupInsuranceAnimations();
     setupLocationAnimations();
     setupSectionHeaders();
+    setupFooterAnimations();
   }
-
-  // -------------------------------------------------------------------------
-  // DEBUG OVERLAY
   // -------------------------------------------------------------------------
   function logDebug(message) {
     console.log(`[Animations] ${message}`);
