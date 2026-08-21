@@ -1396,7 +1396,9 @@
 
       // Background moves slower than scroll — classic parallax
       const mediaOffset = scrolled * 0.45;
-      const scale = 1 + progress * 0.08;
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      const scaleBoost = isMobile ? 0.03 : 0.08;
+      const scale = 1 + progress * scaleBoost;
       media.style.transform = `translate3d(0, ${mediaOffset.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
 
       // Veil drifts gently for layered depth
