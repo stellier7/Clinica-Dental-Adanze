@@ -772,21 +772,19 @@ body.nav-open {
   gap: 1.25rem;
 }
 
-/* When multiple dentists, enable horizontal scroll */
-.dentists__grid[data-scrollable="true"] {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: auto;
-  scrollbar-width: none;
-  padding-bottom: 1rem;
+/* Multiple dentists: vertical stack with social-style portrait photos */
+.dentists__grid[data-multi="true"] {
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
 }
 
-.dentists__grid[data-scrollable="true"]::-webkit-scrollbar {
-  display: none;
+.dentists__grid[data-multi="true"] .dentist-card__photo {
+  aspect-ratio: 4 / 5;
+  max-height: min(72vh, 520px);
+}
+
+.dentists__grid[data-multi="true"] .dentist-card__photo img {
+  object-position: center 20%;
 }
 
 .dentist-card {
@@ -798,13 +796,6 @@ body.nav-open {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 220ms ease, transform 220ms var(--ease-out);
-}
-
-/* When scrollable, make cards full-width */
-.dentists__grid[data-scrollable="true"] .dentist-card {
-  flex: 0 0 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
 .dentist-card__photo {
@@ -863,6 +854,11 @@ body.nav-open {
 
   .dentist-card__photo {
     aspect-ratio: 1;
+  }
+
+  .dentists__grid[data-multi="true"] .dentist-card__photo {
+    aspect-ratio: 4 / 5;
+    max-height: 480px;
   }
 }
 
