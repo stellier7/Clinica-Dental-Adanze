@@ -929,6 +929,29 @@
   // -------------------------------------------------------------------------
   // Location
   // -------------------------------------------------------------------------
+  function buildMapsUrls(addr, fullAddress) {
+    const coords = addr?.mapsCoords;
+    const zoom = coords?.zoom || 16;
+    const lang = document.documentElement.lang === "en" ? "en" : "es";
+
+    if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+      const destination = `${coords.lat},${coords.lng}`;
+      return {
+        embed: `https://www.google.com/maps?q=${encodeURIComponent(destination)}&hl=${lang}&z=${zoom}&output=embed`,
+        link:
+          addr.mapsLink ||
+          `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`,
+      };
+    }
+
+    const query = addr.mapsQuery || fullAddress;
+    const encoded = encodeURIComponent(query);
+    return {
+      embed: `https://www.google.com/maps?q=${encoded}&hl=${lang}&z=${zoom}&output=embed`,
+      link: addr.mapsLink || `https://www.google.com/maps/dir/?api=1&destination=${encoded}`,
+    };
+  }
+
   function renderLocation() {
     const section = document.querySelector('[data-section="location"]');
     const card = document.querySelector("[data-location-card]");
@@ -942,9 +965,8 @@
     }
 
     section.hidden = false;
-    const query = encodeURIComponent(addr.mapsQuery || fullAddress);
-    const mapsEmbed = `https://www.google.com/maps?q=${query}&output=embed`;
-    const mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${query}`;
+
+    const { embed: mapsEmbed, link: mapsLink } = buildMapsUrls(addr, fullAddress);
 
     const hoursRows = DAY_ORDER.map((day) => {
       const value = cfg.practice.hours?.[day];

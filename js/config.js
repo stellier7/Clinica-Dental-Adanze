@@ -42,8 +42,12 @@ const config = {
       city: "Tegucigalpa",
       state: "Francisco Morazán, Honduras",
       zip: "",
-      // Google Maps place_id for accurate pin + directions
-      mapsQuery: "place_id:ChIJJzQkQiOjb48RFESqOuNOYr4",
+      // Pin for embedded map (lat/lng from Google Maps link)
+      mapsCoords: { lat: 14.1009319, lng: -87.183418, zoom: 16 },
+      // Directions button opens this link
+      mapsLink: "https://maps.app.goo.gl/gJWWfuv2JzjDZVQMA",
+      // Fallback search query if coords are omitted
+      mapsQuery: "",
     },
 
     hours: {
