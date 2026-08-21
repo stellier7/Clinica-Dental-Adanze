@@ -1110,14 +1110,19 @@ body.nav-open {
   background: var(--color-surface);
   border: 1px solid rgba(215, 226, 234, 0.9);
   box-shadow: var(--shadow-md);
-  aspect-ratio: 3 / 2;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: box-shadow 220ms ease, transform 220ms var(--ease-out);
 }
 
 .financing__item img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 5.5rem;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 
@@ -1125,6 +1130,14 @@ body.nav-open {
   .financing__grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
+  }
+
+  .financing__item {
+    padding: 1.5rem 2rem;
+  }
+
+  .financing__item img {
+    max-height: 6.5rem;
   }
 
   .financing__item:hover {
