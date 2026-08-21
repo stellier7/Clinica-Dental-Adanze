@@ -253,6 +253,18 @@ const config = {
       // Demo template image included — replace per client
       photoUrl: "assets/images/dentist.jpg",
     },
+    {
+      name: "Dra. Elena Vasquez",
+      title: {
+        en: "Associate Dentist · DMD",
+        es: "Dentista Asociada · DMD",
+      },
+      bio: {
+        en: "Dr. Vasquez focuses on gentle preventive care and cosmetic treatments. Patients appreciate her calm approach and clear explanations at every visit.",
+        es: "La Dra. Vasquez se especializa en cuidado preventivo suave y tratamientos estéticos. Sus pacientes valoran su trato calmado y sus explicaciones claras en cada visita.",
+      },
+      photoUrl: "",
+    },
   ],
 
   // ---------------------------------------------------------------------------
