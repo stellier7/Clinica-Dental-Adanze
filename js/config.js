@@ -73,10 +73,8 @@ const config = {
     accentColor: "",
     primaryDark: "",
     softBg: "",
-    // ADD LOGO: drop transparent PNG/SVG at assets/images/logo.png (or .svg)
-    logoUrl: "",
-    // REPLACE DEMO: drop client hero at assets/images/hero.jpg
-    heroImageUrl: "assets/images/hero.jpg",
+    logoUrl: "assets/images/Logo.jpeg",
+    heroImageUrl: "assets/images/hero.jpeg",
   },
 
   // ---------------------------------------------------------------------------
@@ -232,7 +230,6 @@ const config = {
   // ---------------------------------------------------------------------------
   // DENTISTS
   // ---------------------------------------------------------------------------
-  // ADD PHOTOS: drop headshots in assets/images/dentists/ and set each photoUrl.
   dentists: [
     {
       name: "Dra. Nadyne Reyes",
@@ -244,8 +241,7 @@ const config = {
         en: "Dr. Reyes specializes in orthodontic and maxillofacial care, helping patients achieve balanced, healthy smiles with personalized treatment plans.",
         es: "La Dra. Reyes se especializa en ortopedia y ortodoncia maxilofacial, ayudando a los pacientes a lograr sonrisas equilibradas y saludables con planes personalizados.",
       },
-      // ADD PHOTO: assets/images/dentists/nadyne-reyes.jpg
-      photoUrl: "",
+      photoUrl: "assets/images/dentists/nadyne-reyes.jpeg",
     },
     {
       name: "Dra. Jessica Flores",
@@ -257,8 +253,7 @@ const config = {
         en: "Dr. Flores provides comprehensive dental surgery and restorative care with a gentle, patient-focused approach.",
         es: "La Dra. Flores ofrece cirugía dental integral y cuidado restaurativo con un enfoque gentil y centrado en el paciente.",
       },
-      // ADD PHOTO: assets/images/dentists/jessica-flores.jpg
-      photoUrl: "",
+      photoUrl: "assets/images/dentists/jessica-flores.jpeg",
     },
     {
       name: "Dra. Florencia Andino",
@@ -270,8 +265,7 @@ const config = {
         en: "Dr. Andino focuses on endodontic treatments to relieve pain and preserve natural teeth whenever possible.",
         es: "La Dra. Andino se especializa en tratamientos de endodoncia para aliviar el dolor y preservar los dientes naturales siempre que sea posible.",
       },
-      // ADD PHOTO: assets/images/dentists/florencia-andino.jpg
-      photoUrl: "",
+      photoUrl: "assets/images/dentists/florencia-andino.jpeg",
     },
     {
       name: "Dra. Zury Flores",
@@ -283,8 +277,7 @@ const config = {
         en: "Dr. Zury Flores combines medical and surgical expertise with aesthetic and regenerative treatments for natural, lasting results.",
         es: "La Dra. Zury Flores combina experiencia médica y quirúrgica con tratamientos estéticos y regenerativos para resultados naturales y duraderos.",
       },
-      // ADD PHOTO: assets/images/dentists/zury-flores.jpg
-      photoUrl: "",
+      photoUrl: "assets/images/dentists/zury-flores.jpeg",
     },
   ],
 
@@ -362,13 +355,13 @@ const config = {
   // ---------------------------------------------------------------------------
   // SMILE GALLERY
   // ---------------------------------------------------------------------------
-  // REPLACE DEMO: swap each file under assets/images/gallery/ with client photos
   gallery: [
-    "assets/images/gallery/smile-01.jpg",
-    "assets/images/gallery/smile-02.jpg",
-    "assets/images/gallery/smile-03.jpg",
-    "assets/images/gallery/smile-04.jpg",
-    "assets/images/gallery/smile-05.jpg",
+    "assets/images/gallery/IMG_0348.jpeg",
+    "assets/images/gallery/IMG_0349.jpeg",
+    "assets/images/gallery/IMG_0350.jpeg",
+    "assets/images/gallery/IMG_0351.jpeg",
+    "assets/images/gallery/IMG_0352.jpeg",
+    "assets/images/gallery/IMG_0353.jpeg",
   ],
 
   // ---------------------------------------------------------------------------
