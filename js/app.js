@@ -35,6 +35,7 @@
   bindGlobalUI();
   initHeaderScroll();
   initTestimonialsCarousel();
+  initDentistsCarousel();
   initVerticalScrollChaining();
   
   // Initialize animations after content renders
@@ -409,11 +410,13 @@
 
     section.hidden = false;
 
-    // Multiple dentists: vertical stack (social-style portrait cards)
+    // Enable horizontal scroll for multiple dentists
     if (dentists.length > 1) {
-      grid.setAttribute("data-multi", "true");
+      grid.setAttribute("data-scrollable", "true");
+      grid.setAttribute("data-vertical-scroll-chain", "");
     } else {
-      grid.removeAttribute("data-multi");
+      grid.removeAttribute("data-scrollable");
+      grid.removeAttribute("data-vertical-scroll-chain");
     }
 
     grid.innerHTML = dentists
@@ -441,6 +444,124 @@
         </article>`;
       })
       .join("");
+  }
+
+  // -------------------------------------------------------------------------
+  // Dentists Carousel (for multiple dentists)
+  // -------------------------------------------------------------------------
+  function initDentistsCarousel() {
+    const grid = document.querySelector("[data-dentists-grid]");
+    if (!grid || grid.getAttribute("data-scrollable") !== "true") return;
+
+    const cards = grid.querySelectorAll(".dentist-card");
+    if (cards.length <= 1) return;
+
+    const section = document.querySelector('[data-section="dentists"]');
+    if (!section) return;
+
+    let autoScrollInterval = null;
+    let isPaused = false;
+    let currentIndex = 0;
+    let hasStarted = false;
+    let isAutoScrolling = false;
+
+    function scrollToCard(index) {
+      const card = cards[index];
+      if (!card) return;
+
+      isAutoScrolling = true;
+
+      grid.scrollTo({
+        left: card.offsetLeft,
+        behavior: "smooth",
+      });
+
+      setTimeout(() => {
+        isAutoScrolling = false;
+      }, 600);
+    }
+
+    function startAutoScroll() {
+      if (isPaused || autoScrollInterval) return;
+
+      autoScrollInterval = setInterval(() => {
+        if (isPaused) return;
+
+        currentIndex = (currentIndex + 1) % cards.length;
+        scrollToCard(currentIndex);
+      }, 5000);
+    }
+
+    function pauseAutoScroll() {
+      isPaused = true;
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
+    }
+
+    function resumeAutoScroll() {
+      isPaused = false;
+      startAutoScroll();
+    }
+
+    grid.addEventListener("mouseenter", pauseAutoScroll);
+    grid.addEventListener("mouseleave", resumeAutoScroll);
+    grid.addEventListener("touchstart", pauseAutoScroll, { passive: true });
+    grid.addEventListener("touchend", resumeAutoScroll, { passive: true });
+    grid.addEventListener("touchcancel", resumeAutoScroll, { passive: true });
+
+    let scrollTimeout;
+    grid.addEventListener(
+      "scroll",
+      () => {
+        if (isAutoScrolling) return;
+
+        pauseAutoScroll();
+        clearTimeout(scrollTimeout);
+
+        scrollTimeout = setTimeout(() => {
+          const scrollLeft = grid.scrollLeft;
+          let closestIndex = 0;
+          let closestDist = Infinity;
+
+          cards.forEach((card, i) => {
+            const dist = Math.abs(card.offsetLeft - scrollLeft);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestIndex = i;
+            }
+          });
+
+          currentIndex = closestIndex;
+          resumeAutoScroll();
+        }, 7000);
+      },
+      { passive: true }
+    );
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasStarted) {
+            hasStarted = true;
+            currentIndex = 0;
+            grid.scrollTo({ left: 0, behavior: "auto" });
+            setTimeout(() => {
+              isPaused = false;
+              startAutoScroll();
+            }, 1000);
+            observer.unobserve(section);
+          }
+        });
+      },
+      {
+        threshold: 0.2,
+        rootMargin: "0px 0px -10% 0px",
+      }
+    );
+
+    observer.observe(section);
   }
 
   // -------------------------------------------------------------------------
@@ -1286,13 +1407,13 @@
     });
   }
 
-  // DENTISTS - Fade up as each card enters view (vertical stack)
+  // DENTISTS - Entire card slides in
   function setupDentistsAnimations() {
-    const dentistCards = document.querySelectorAll('.dentist-card');
+    const dentistCards = document.querySelectorAll(".dentist-card");
     dentistCards.forEach((card, i) => {
-      card.setAttribute('data-animate', 'slide-up');
-      card.setAttribute('data-anim-label', `dentist-card-${i + 1}`);
-      card.style.transitionDelay = `${i * 100}ms`;
+      const direction = i % 2 === 0 ? "slide-left" : "slide-right";
+      card.setAttribute("data-animate", direction);
+      card.setAttribute("data-anim-label", `dentist-card-${i + 1}`);
       animationObserver.observe(card);
     });
   }
@@ -1437,69 +1558,68 @@
     if (!scroller || !prevBtn || !nextBtn) return;
 
     function updateButtons() {
-      const isAtStart = scroller.scrollLeft <= 10;
-      const isAtEnd = scroller.scrollLeft >= scroller.scrollWidth - scroller.clientWidth - 10;
-      
+      const isAtStart = scroller.scrollTop <= 10;
+      const isAtEnd =
+        scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 10;
+
       prevBtn.disabled = isAtStart;
       nextBtn.disabled = isAtEnd;
     }
 
     function scrollToNext() {
-      const items = scroller.querySelectorAll('.gallery__item');
+      const items = scroller.querySelectorAll(".gallery__item");
       if (items.length === 0) return;
-      
-      const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+
+      const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
       let nextItem = null;
-      
-      // Find the next item after the current center position
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
         if (itemCenter > scrollerCenter + 50) {
           nextItem = item;
           break;
         }
       }
-      
+
       if (nextItem) {
-        const itemLeft = nextItem.offsetLeft;
-        const itemWidth = nextItem.offsetWidth;
-        const scrollerWidth = scroller.clientWidth;
-        const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
-        
+        const itemTop = nextItem.offsetTop;
+        const itemHeight = nextItem.offsetHeight;
+        const scrollerHeight = scroller.clientHeight;
+        const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+
         scroller.scrollTo({
-          left: Math.max(0, scrollPosition),
-          behavior: prefersReducedMotion.matches ? 'auto' : 'smooth'
+          top: Math.max(0, scrollPosition),
+          behavior: prefersReducedMotion.matches ? "auto" : "smooth",
         });
       }
     }
 
     function scrollToPrev() {
-      const items = scroller.querySelectorAll('.gallery__item');
+      const items = scroller.querySelectorAll(".gallery__item");
       if (items.length === 0) return;
-      
-      const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+
+      const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
       let prevItem = null;
-      
-      // Find the previous item before the current center position
+
       for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
-        const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
         if (itemCenter < scrollerCenter - 50) {
           prevItem = item;
           break;
         }
       }
-      
+
       if (prevItem) {
-        const itemLeft = prevItem.offsetLeft;
-        const itemWidth = prevItem.offsetWidth;
-        const scrollerWidth = scroller.clientWidth;
-        const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
-        
+        const itemTop = prevItem.offsetTop;
+        const itemHeight = prevItem.offsetHeight;
+        const scrollerHeight = scroller.clientHeight;
+        const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+
         scroller.scrollTo({
-          left: Math.max(0, scrollPosition),
-          behavior: prefersReducedMotion.matches ? 'auto' : 'smooth'
+          top: Math.max(0, scrollPosition),
+          behavior: prefersReducedMotion.matches ? "auto" : "smooth",
         });
       }
     }
@@ -1530,16 +1650,15 @@
     function scrollToIndex(index) {
       const item = items[index];
       if (!item) return;
-      
-      // Calculate scroll position to center the item
-      const itemLeft = item.offsetLeft;
-      const itemWidth = item.offsetWidth;
-      const scrollerWidth = scroller.clientWidth;
-      const scrollPosition = itemLeft - (scrollerWidth / 2) + (itemWidth / 2);
-      
+
+      const itemTop = item.offsetTop;
+      const itemHeight = item.offsetHeight;
+      const scrollerHeight = scroller.clientHeight;
+      const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+
       scroller.scrollTo({
-        left: Math.max(0, scrollPosition),
-        behavior: 'smooth'
+        top: Math.max(0, scrollPosition),
+        behavior: "smooth",
       });
     }
     
@@ -1580,22 +1699,22 @@
       
       // Update current index based on scroll position
       scrollTimeout = setTimeout(() => {
-        const scrollerCenter = scroller.scrollLeft + (scroller.clientWidth / 2);
+        const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
         let closestIndex = 0;
         let closestDistance = Infinity;
-        
+
         items.forEach((item, index) => {
-          const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
+          const itemCenter = item.offsetTop + item.offsetHeight / 2;
           const distance = Math.abs(scrollerCenter - itemCenter);
           if (distance < closestDistance) {
             closestDistance = distance;
             closestIndex = index;
           }
         });
-        
+
         currentIndex = closestIndex;
         resumeAutoScroll();
-      }, 5000); // Resume after 5 seconds
+      }, 5000);
     }, { passive: true });
     
     // Start auto-scrolling
