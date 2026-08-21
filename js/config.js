@@ -42,11 +42,12 @@ const config = {
       city: "Tegucigalpa",
       state: "Francisco Morazán, Honduras",
       zip: "",
-      // Pin for embedded map (lat/lng from Google Maps link)
       mapsCoords: { lat: 14.1009319, lng: -87.183418, zoom: 16 },
-      // Directions button opens this link
+      mapsPlaceRef: "0x8f6fa32342243427:0xbe624ee33aaa4414",
+      mapsPlaceName: "Dental Adanze - Plaza Savannah",
       mapsLink: "https://maps.app.goo.gl/gJWWfuv2JzjDZVQMA",
-      // Fallback search query if coords are omitted
+      mapsEmbed:
+        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7739.194650959054!2d-87.183418!3d14.1009319!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8f6fa32342243427%3A0xbe624ee33aaa4414!2sDental%20Adanze%20-%20Plaza%20Savannah!5e0!3m2!1ses!2shn!4v1724265600000!5m2!1ses!2shn",
       mapsQuery: "",
     },
 

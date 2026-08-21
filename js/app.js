@@ -934,22 +934,78 @@
     const zoom = coords?.zoom || 16;
     const lang = document.documentElement.lang === "en" ? "en" : "es";
 
+    if (addr.mapsEmbed) {
+      return {
+        embed: addr.mapsEmbed,
+        link: addr.mapsLink || buildMapsDirectionsLink(addr, fullAddress, coords),
+      };
+    }
+
     if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
       const destination = `${coords.lat},${coords.lng}`;
+      const placeRef = addr.mapsPlaceRef || "";
+      const placeName = addr.mapsPlaceName || cfg.practice.name;
+
+      if (placeRef) {
+        const latRad = (coords.lat * Math.PI) / 180;
+        const span = (40075016.686 * Math.cos(latRad)) / Math.pow(2, zoom);
+        const pb = [
+          "!1m18",
+          "!1m12",
+          "!1m3",
+          `!1d${span}`,
+          `!2d${coords.lng}`,
+          `!3d${coords.lat}`,
+          "!2m3",
+          "!1f0",
+          "!2f0",
+          "!3f0",
+          "!3m2",
+          "!1i1024",
+          "!2i768",
+          "!4f13.1",
+          "!3m3",
+          "!1m2",
+          `!1s${encodeURIComponent(placeRef)}`,
+          `!2s${encodeURIComponent(placeName)}`,
+          "!5e0",
+          "!3m2",
+          `!1s${lang}`,
+          "!2shn",
+          "!4v1",
+          "!5m2",
+          `!1s${lang}`,
+          "!2shn",
+        ].join("");
+
+        return {
+          embed: `https://www.google.com/maps/embed?pb=${pb}`,
+          link: addr.mapsLink || buildMapsDirectionsLink(addr, fullAddress, coords),
+        };
+      }
+
       return {
-        embed: `https://www.google.com/maps?q=${encodeURIComponent(destination)}&hl=${lang}&z=${zoom}&output=embed`,
-        link:
-          addr.mapsLink ||
-          `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`,
+        embed: `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&hl=${lang}&z=${zoom}&ie=UTF8&iwloc=&output=embed`,
+        link: addr.mapsLink || buildMapsDirectionsLink(addr, fullAddress, coords),
       };
     }
 
     const query = addr.mapsQuery || fullAddress;
     const encoded = encodeURIComponent(query);
     return {
-      embed: `https://www.google.com/maps?q=${encoded}&hl=${lang}&z=${zoom}&output=embed`,
+      embed: `https://maps.google.com/maps?q=${encoded}&hl=${lang}&z=${zoom}&ie=UTF8&iwloc=&output=embed`,
       link: addr.mapsLink || `https://www.google.com/maps/dir/?api=1&destination=${encoded}`,
     };
+  }
+
+  function buildMapsDirectionsLink(addr, fullAddress, coords) {
+    if (addr.mapsLink) return addr.mapsLink;
+    if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+      const destination = `${coords.lat},${coords.lng}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+    }
+    const query = addr.mapsQuery || fullAddress;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
   }
 
   function renderLocation() {
