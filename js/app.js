@@ -922,6 +922,10 @@
         <div class="site-footer__bottom">
           © ${year} ${escapeHtml(cfg.practice.name)}. ${escapeHtml(t("footer.rights"))}
         </div>
+        <p class="site-footer__credit">
+          ${escapeHtml(t("footer.developedBy"))}
+          <a href="https://iagodigital.vercel.app" target="_blank" rel="noopener">IAGO Digital</a>
+        </p>
       </div>`;
   }
 

@@ -151,6 +151,7 @@ const config = {
         hours: "Hours",
         follow: "Follow Us",
         rights: "All rights reserved.",
+        developedBy: "Developed by",
       },
       langToggle: {
         label: "Language",
@@ -221,6 +222,7 @@ const config = {
         hours: "Horario",
         follow: "Síguenos",
         rights: "Todos los derechos reservados.",
+        developedBy: "Desarrollado por",
       },
       langToggle: {
         label: "Idioma",
