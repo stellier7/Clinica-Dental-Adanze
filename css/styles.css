@@ -774,6 +774,7 @@ body.nav-open {
 
 /* When multiple dentists, enable horizontal scroll */
 .dentists__grid[data-scrollable="true"] {
+  --dentist-card-width: 90%;
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
@@ -783,8 +784,8 @@ body.nav-open {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   scrollbar-width: none;
-  padding: 0.25rem 0 1rem;
-  scroll-padding-inline: 1rem;
+  padding: 0.25rem calc((100% - var(--dentist-card-width)) / 2) 1rem;
+  scroll-padding-inline: calc((100% - var(--dentist-card-width)) / 2);
 }
 
 .dentists__grid[data-scrollable="true"]::-webkit-scrollbar {
@@ -804,17 +805,8 @@ body.nav-open {
 
 /* Peek adjacent cards; active card stays centered */
 .dentists__grid[data-scrollable="true"] .dentist-card {
-  flex: 0 0 90%;
+  flex: 0 0 var(--dentist-card-width);
   scroll-snap-align: center;
-  scroll-snap-stop: always;
-}
-
-.dentists__grid[data-scrollable="true"] .dentist-card[data-clone="start"] {
-  margin-left: max(1rem, 5%);
-}
-
-.dentists__grid[data-scrollable="true"] .dentist-card[data-clone="end"] {
-  margin-right: max(1rem, 5%);
 }
 
 .dentist-card__photo {
@@ -875,16 +867,8 @@ body.nav-open {
     aspect-ratio: 1;
   }
 
-  .dentists__grid[data-scrollable="true"] .dentist-card {
-    flex-basis: min(82%, 760px);
-  }
-
-  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone="start"] {
-    margin-left: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
-  }
-
-  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone="end"] {
-    margin-right: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
+  .dentists__grid[data-scrollable="true"] {
+    --dentist-card-width: min(82%, 760px);
   }
 }
 
