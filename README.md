@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dental Practice Website Template
 
 Mobile-first, bilingual (ES/EN) dental practice site built with plain HTML, CSS, and vanilla JavaScript. All client-specific content lives in a single config file — swap the data, drop in images, and deploy.
@@ -113,3 +114,6 @@ vercel --prod
 - [ ] Set real Instagram / Facebook URLs (or clear them to hide icons)
 - [ ] Tap-test click-to-call and directions on a real phone
 - [ ] Smoke-test parallax scroll on iOS Safari
+=======
+# Clinica-Dental-Adanze
+>>>>>>> adanze/main
