@@ -101,10 +101,10 @@
 
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute(
-        "content",
-        `${cfg.practice.name} — ${localized(cfg.practice.tagline)}`
-      );
+      const description = cfg.metadata
+        ? localized(cfg.metadata)
+        : `${cfg.practice.name} — ${localized(cfg.practice.tagline)}`;
+      metaDesc.setAttribute("content", description);
     }
 
     renderBrand();
