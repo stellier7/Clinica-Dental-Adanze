@@ -35,7 +35,6 @@
   bindGlobalUI();
   initHeaderScroll();
   initTestimonialsCarousel();
-  initDentistsCarousel();
   initVerticalScrollChaining();
   
   // Initialize animations after content renders
@@ -409,16 +408,14 @@
     }
 
     section.hidden = false;
-    
-    // Enable horizontal scroll for multiple dentists
+
+    // Multiple dentists: vertical stack (social-style portrait cards)
     if (dentists.length > 1) {
-      grid.setAttribute('data-scrollable', 'true');
-      grid.setAttribute('data-vertical-scroll-chain', '');
+      grid.setAttribute("data-multi", "true");
     } else {
-      grid.removeAttribute('data-scrollable');
-      grid.removeAttribute('data-vertical-scroll-chain');
+      grid.removeAttribute("data-multi");
     }
-    
+
     grid.innerHTML = dentists
       .map((d) => {
         const initials = (d.name || "")
@@ -444,133 +441,6 @@
         </article>`;
       })
       .join("");
-  }
-
-  // -------------------------------------------------------------------------
-  // Dentists Carousel (for multiple dentists)
-  // -------------------------------------------------------------------------
-  function initDentistsCarousel() {
-    const grid = document.querySelector("[data-dentists-grid]");
-    if (!grid || grid.getAttribute('data-scrollable') !== 'true') return;
-    
-    const cards = grid.querySelectorAll('.dentist-card');
-    if (cards.length <= 1) return;
-    
-    const section = document.querySelector('[data-section="dentists"]');
-    if (!section) return;
-    
-    let autoScrollInterval = null;
-    let isPaused = false;
-    let currentIndex = 0;
-    let hasStarted = false;
-    let isAutoScrolling = false; // FIX #3: Track programmatic scrolls
-    
-    function scrollToCard(index) {
-      const card = cards[index];
-      if (!card) return;
-      
-      // FIX #3: Flag that this is an auto-scroll, not user scroll
-      isAutoScrolling = true;
-      
-      grid.scrollTo({
-        left: card.offsetLeft,
-        behavior: 'smooth'
-      });
-      
-      // Clear flag after smooth-scroll animation completes (~300-500ms)
-      setTimeout(() => {
-        isAutoScrolling = false;
-      }, 600);
-    }
-    
-    function startAutoScroll() {
-      if (isPaused || autoScrollInterval) return;
-      
-      autoScrollInterval = setInterval(() => {
-        if (isPaused) return;
-        
-        currentIndex = (currentIndex + 1) % cards.length;
-        scrollToCard(currentIndex);
-      }, 5000); // Scroll every 5 seconds (longer for bio reading)
-    }
-    
-    function pauseAutoScroll() {
-      isPaused = true;
-      if (autoScrollInterval) {
-        clearInterval(autoScrollInterval);
-        autoScrollInterval = null;
-      }
-    }
-    
-    function resumeAutoScroll() {
-      isPaused = false;
-      startAutoScroll();
-    }
-    
-    // Pause on hover/touch
-    grid.addEventListener('mouseenter', pauseAutoScroll);
-    grid.addEventListener('mouseleave', resumeAutoScroll);
-    grid.addEventListener('touchstart', pauseAutoScroll, { passive: true });
-    
-    // FIX #1: Resume on touch end (was missing!)
-    grid.addEventListener('touchend', resumeAutoScroll, { passive: true });
-    grid.addEventListener('touchcancel', resumeAutoScroll, { passive: true });
-    
-    // Pause when user manually scrolls
-    let scrollTimeout;
-    grid.addEventListener('scroll', () => {
-      // FIX #3: Ignore scroll events from auto-scroll itself
-      if (isAutoScrolling) return;
-      
-      // Only pause for genuine user scrolls
-      pauseAutoScroll();
-      clearTimeout(scrollTimeout);
-      
-      // Update current index based on scroll position
-      scrollTimeout = setTimeout(() => {
-        const scrollLeft = grid.scrollLeft;
-        let closestIndex = 0;
-        let closestDist = Infinity;
-        
-        cards.forEach((card, i) => {
-          const dist = Math.abs(card.offsetLeft - scrollLeft);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = i;
-          }
-        });
-        
-        currentIndex = closestIndex;
-        resumeAutoScroll();
-      }, 7000); // Resume after 7 seconds (extra time for reading bios)
-    }, { passive: true });
-    
-    // Only start auto-scrolling when the section comes into view
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasStarted) {
-            hasStarted = true;
-            // Ensure we start at the first dentist
-            currentIndex = 0;
-            grid.scrollTo({ left: 0, behavior: 'auto' });
-            // Start auto-scrolling after a brief delay
-            setTimeout(() => {
-              // FIX #2: Force clear any pause from initialization scroll
-              isPaused = false;
-              startAutoScroll();
-            }, 1000);
-            observer.unobserve(section);
-          }
-        });
-      },
-      {
-        threshold: 0.2,
-        rootMargin: '0px 0px -10% 0px'
-      }
-    );
-    
-    observer.observe(section);
   }
 
   // -------------------------------------------------------------------------
@@ -1416,13 +1286,13 @@
     });
   }
 
-  // DENTISTS - Entire card slides in
+  // DENTISTS - Fade up as each card enters view (vertical stack)
   function setupDentistsAnimations() {
     const dentistCards = document.querySelectorAll('.dentist-card');
     dentistCards.forEach((card, i) => {
-      const direction = i % 2 === 0 ? 'slide-left' : 'slide-right';
-      card.setAttribute('data-animate', direction);
+      card.setAttribute('data-animate', 'slide-up');
       card.setAttribute('data-anim-label', `dentist-card-${i + 1}`);
+      card.style.transitionDelay = `${i * 100}ms`;
       animationObserver.observe(card);
     });
   }
