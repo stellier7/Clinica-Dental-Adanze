@@ -362,17 +362,17 @@ const config = {
   // Upload JPGs/PNGs to /assets/images/financing/ (see README in that folder).
   financingImages: [
     {
-      src: "assets/images/financing/financing-01.svg",
+      src: "assets/images/financing/Bac.png",
       alt: {
-        en: "Flexible payment plans",
-        es: "Planes de pago flexibles",
+        en: "BAC Credomatic financing",
+        es: "Financiamiento BAC Credomatic",
       },
     },
     {
-      src: "assets/images/financing/financing-02.svg",
+      src: "assets/images/financing/Ficohsa.png",
       alt: {
-        en: "CareCredit and payment options",
-        es: "CareCredit y opciones de pago",
+        en: "Ficohsa financing",
+        es: "Financiamiento Ficohsa",
       },
     },
   ],
