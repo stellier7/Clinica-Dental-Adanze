@@ -455,20 +455,6 @@
     );
   }
 
-  function prependInfiniteClone(container, lastItem) {
-    container.querySelectorAll('[data-clone="start"]').forEach((el) => el.remove());
-    if (!lastItem) return null;
-
-    const clone = lastItem.cloneNode(true);
-    clone.setAttribute("data-clone", "start");
-    clone.setAttribute("aria-hidden", "true");
-    clone.querySelectorAll("img").forEach((img) => {
-      img.alt = "";
-    });
-    container.insertBefore(clone, container.firstChild);
-    return clone;
-  }
-
   function appendInfiniteClone(container, firstItem) {
     container.querySelectorAll('[data-clone="end"]').forEach((el) => el.remove());
     if (!firstItem) return null;
@@ -554,7 +540,6 @@
     const section = document.querySelector('[data-section="dentists"]');
     if (!section) return;
 
-    prependInfiniteClone(grid, realCards[realCards.length - 1]);
     appendInfiniteClone(grid, realCards[0]);
 
     const realCount = realCards.length;
@@ -586,23 +571,24 @@
       currentIndex = getClosestCarouselIndex(grid, realCards);
     }
 
-    function normalizeInfiniteLoop() {
+    // After scrolling right onto the end clone, shift scroll position in place
+    // so the real first card is shown without animating back to the left.
+    function snapEndCloneToStart() {
       const endClone = grid.querySelector('[data-clone="end"]');
-      const startClone = grid.querySelector('[data-clone="start"]');
+      const realFirst = realCards[0];
+      if (!endClone || !realFirst || !cardIsCentered(endClone)) return false;
 
-      if (cardIsCentered(endClone)) {
-        currentIndex = 0;
-        centerCard(realCards[0], "auto");
-        return;
-      }
+      const delta = endClone.offsetLeft - realFirst.offsetLeft;
+      grid.style.scrollSnapType = "none";
+      grid.style.scrollBehavior = "auto";
+      grid.scrollLeft -= delta;
+      grid.style.scrollBehavior = "";
+      requestAnimationFrame(() => {
+        grid.style.scrollSnapType = "";
+      });
 
-      if (cardIsCentered(startClone)) {
-        currentIndex = realCount - 1;
-        centerCard(realCards[realCount - 1], "auto");
-        return;
-      }
-
-      syncCurrentIndex();
+      currentIndex = 0;
+      return true;
     }
 
     function scheduleAutoScrollResume() {
@@ -620,14 +606,20 @@
     }
 
     function onScrollSettled() {
-      if (userIsScrolling) {
-        normalizeInfiniteLoop();
-        userIsScrolling = false;
-        scheduleAutoScrollResume();
+      if (snapEndCloneToStart()) {
+        if (userIsScrolling) {
+          userIsScrolling = false;
+          scheduleAutoScrollResume();
+        }
         return;
       }
 
       syncCurrentIndex();
+
+      if (userIsScrolling) {
+        userIsScrolling = false;
+        scheduleAutoScrollResume();
+      }
     }
 
     function advance() {
@@ -639,10 +631,6 @@
 
       const endClone = grid.querySelector('[data-clone="end"]');
       centerCard(endClone);
-      setTimeout(() => {
-        currentIndex = 0;
-        centerCard(realCards[0], "auto");
-      }, prefersReducedMotion.matches ? 0 : 520);
     }
 
     function startAutoScroll() {
