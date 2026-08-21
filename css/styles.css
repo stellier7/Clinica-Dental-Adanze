@@ -775,6 +775,7 @@ body.nav-open {
 /* When multiple dentists, enable horizontal scroll */
 .dentists__grid[data-scrollable="true"] {
   display: flex;
+  gap: 0.75rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
@@ -782,7 +783,8 @@ body.nav-open {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   scrollbar-width: none;
-  padding-bottom: 1rem;
+  padding: 0.25rem 0 1rem;
+  scroll-padding-inline: 1rem;
 }
 
 .dentists__grid[data-scrollable="true"]::-webkit-scrollbar {
@@ -800,11 +802,19 @@ body.nav-open {
   transition: box-shadow 220ms ease, transform 220ms var(--ease-out);
 }
 
-/* When scrollable, make cards full-width */
+/* Peek adjacent cards; active card stays centered */
 .dentists__grid[data-scrollable="true"] .dentist-card {
-  flex: 0 0 100%;
-  scroll-snap-align: start;
+  flex: 0 0 90%;
+  scroll-snap-align: center;
   scroll-snap-stop: always;
+}
+
+.dentists__grid[data-scrollable="true"] .dentist-card:first-child {
+  margin-left: max(1rem, 5%);
+}
+
+.dentists__grid[data-scrollable="true"] .dentist-card[data-clone] {
+  margin-right: max(1rem, 5%);
 }
 
 .dentist-card__photo {
@@ -864,6 +874,18 @@ body.nav-open {
   .dentist-card__photo {
     aspect-ratio: 1;
   }
+
+  .dentists__grid[data-scrollable="true"] .dentist-card {
+    flex-basis: min(82%, 760px);
+  }
+
+  .dentists__grid[data-scrollable="true"] .dentist-card:first-child {
+    margin-left: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
+  }
+
+  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone] {
+    margin-right: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -878,9 +900,13 @@ body.nav-open {
   width: 100%;
 }
 
+.gallery {
+  --gallery-item-size: min(86vw, 360px);
+}
+
 .gallery__scroller {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
@@ -889,8 +915,8 @@ body.nav-open {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   scrollbar-width: none;
-  padding: 0.5rem 1rem 1.25rem 1rem;
-  margin: 0 -1rem;
+  padding: 0.5rem max(1rem, calc((100% - var(--gallery-item-size)) / 2)) 1.25rem;
+  margin: 0;
 }
 
 .gallery__scroller::-webkit-scrollbar {
@@ -898,8 +924,8 @@ body.nav-open {
 }
 
 .gallery__item {
-  flex: 0 0 72%;
-  max-width: 300px;
+  flex: 0 0 var(--gallery-item-size);
+  width: var(--gallery-item-size);
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -925,15 +951,17 @@ body.nav-open {
 }
 
 @media (min-width: 768px) {
+  .gallery {
+    --gallery-item-size: 360px;
+  }
+
   .gallery__scroller {
-    gap: 1.25rem;
-    padding: 0.5rem max(2rem, calc((100vw - var(--container)) / 2)) 1.25rem;
-    margin: 0 calc(-1 * max(2rem, calc((100vw - var(--container)) / 2)));
+    gap: 0.625rem;
+    padding-inline: max(2rem, calc((100vw - var(--gallery-item-size)) / 2));
   }
 
   .gallery__item {
-    flex: 0 0 280px;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 
   .gallery__item:hover {
