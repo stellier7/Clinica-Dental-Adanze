@@ -1558,9 +1558,9 @@
     if (!scroller || !prevBtn || !nextBtn) return;
 
     function updateButtons() {
-      const isAtStart = scroller.scrollTop <= 10;
+      const isAtStart = scroller.scrollLeft <= 10;
       const isAtEnd =
-        scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 10;
+        scroller.scrollLeft >= scroller.scrollWidth - scroller.clientWidth - 10;
 
       prevBtn.disabled = isAtStart;
       nextBtn.disabled = isAtEnd;
@@ -1570,12 +1570,12 @@
       const items = scroller.querySelectorAll(".gallery__item");
       if (items.length === 0) return;
 
-      const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
+      const scrollerCenter = scroller.scrollLeft + scroller.clientWidth / 2;
       let nextItem = null;
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
         if (itemCenter > scrollerCenter + 50) {
           nextItem = item;
           break;
@@ -1583,13 +1583,13 @@
       }
 
       if (nextItem) {
-        const itemTop = nextItem.offsetTop;
-        const itemHeight = nextItem.offsetHeight;
-        const scrollerHeight = scroller.clientHeight;
-        const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+        const itemLeft = nextItem.offsetLeft;
+        const itemWidth = nextItem.offsetWidth;
+        const scrollerWidth = scroller.clientWidth;
+        const scrollPosition = itemLeft - scrollerWidth / 2 + itemWidth / 2;
 
         scroller.scrollTo({
-          top: Math.max(0, scrollPosition),
+          left: Math.max(0, scrollPosition),
           behavior: prefersReducedMotion.matches ? "auto" : "smooth",
         });
       }
@@ -1599,12 +1599,12 @@
       const items = scroller.querySelectorAll(".gallery__item");
       if (items.length === 0) return;
 
-      const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
+      const scrollerCenter = scroller.scrollLeft + scroller.clientWidth / 2;
       let prevItem = null;
 
       for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i];
-        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
         if (itemCenter < scrollerCenter - 50) {
           prevItem = item;
           break;
@@ -1612,13 +1612,13 @@
       }
 
       if (prevItem) {
-        const itemTop = prevItem.offsetTop;
-        const itemHeight = prevItem.offsetHeight;
-        const scrollerHeight = scroller.clientHeight;
-        const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+        const itemLeft = prevItem.offsetLeft;
+        const itemWidth = prevItem.offsetWidth;
+        const scrollerWidth = scroller.clientWidth;
+        const scrollPosition = itemLeft - scrollerWidth / 2 + itemWidth / 2;
 
         scroller.scrollTo({
-          top: Math.max(0, scrollPosition),
+          left: Math.max(0, scrollPosition),
           behavior: prefersReducedMotion.matches ? "auto" : "smooth",
         });
       }
@@ -1651,13 +1651,13 @@
       const item = items[index];
       if (!item) return;
 
-      const itemTop = item.offsetTop;
-      const itemHeight = item.offsetHeight;
-      const scrollerHeight = scroller.clientHeight;
-      const scrollPosition = itemTop - scrollerHeight / 2 + itemHeight / 2;
+      const itemLeft = item.offsetLeft;
+      const itemWidth = item.offsetWidth;
+      const scrollerWidth = scroller.clientWidth;
+      const scrollPosition = itemLeft - scrollerWidth / 2 + itemWidth / 2;
 
       scroller.scrollTo({
-        top: Math.max(0, scrollPosition),
+        left: Math.max(0, scrollPosition),
         behavior: "smooth",
       });
     }
@@ -1699,12 +1699,12 @@
       
       // Update current index based on scroll position
       scrollTimeout = setTimeout(() => {
-        const scrollerCenter = scroller.scrollTop + scroller.clientHeight / 2;
+        const scrollerCenter = scroller.scrollLeft + scroller.clientWidth / 2;
         let closestIndex = 0;
         let closestDistance = Infinity;
 
         items.forEach((item, index) => {
-          const itemCenter = item.offsetTop + item.offsetHeight / 2;
+          const itemCenter = item.offsetLeft + item.offsetWidth / 2;
           const distance = Math.abs(scrollerCenter - itemCenter);
           if (distance < closestDistance) {
             closestDistance = distance;

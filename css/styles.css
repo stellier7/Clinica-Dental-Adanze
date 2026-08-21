@@ -867,7 +867,7 @@ body.nav-open {
 }
 
 /* ---------------------------------------------------------------------------
-   Gallery — vertical carousel with auto-scroll (social-style portraits)
+   Gallery — horizontal carousel with auto-scroll (portrait 4:5 frames)
    --------------------------------------------------------------------------- */
 .gallery .container {
   margin-bottom: 1.5rem;
@@ -876,26 +876,21 @@ body.nav-open {
 .gallery__wrap {
   position: relative;
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 
 .gallery__scroller {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
   gap: 1rem;
-  width: min(100% - 2rem, 420px);
-  max-height: min(72vh, 640px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-snap-type: y mandatory;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  overscroll-behavior-x: none;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
   scrollbar-width: none;
-  padding: 0.5rem 0 1.25rem;
+  padding: 0.5rem 1rem 1.25rem 1rem;
+  margin: 0 -1rem;
 }
 
 .gallery__scroller::-webkit-scrollbar {
@@ -903,8 +898,8 @@ body.nav-open {
 }
 
 .gallery__item {
-  flex: 0 0 auto;
-  width: 100%;
+  flex: 0 0 72%;
+  max-width: 300px;
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -931,8 +926,14 @@ body.nav-open {
 
 @media (min-width: 768px) {
   .gallery__scroller {
-    width: min(100% - 2rem, 380px);
-    max-height: min(75vh, 680px);
+    gap: 1.25rem;
+    padding: 0.5rem max(2rem, calc((100vw - var(--container)) / 2)) 1.25rem;
+    margin: 0 calc(-1 * max(2rem, calc((100vw - var(--container)) / 2)));
+  }
+
+  .gallery__item {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
   }
 
   .gallery__item:hover {
