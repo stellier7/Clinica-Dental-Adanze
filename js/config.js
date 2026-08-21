@@ -237,6 +237,18 @@ const config = {
   // ---------------------------------------------------------------------------
   dentists: [
     {
+      name: "Dra. Florencia Andino",
+      title: {
+        en: "Endodontics Specialist",
+        es: "Especialista en Endodoncia",
+      },
+      bio: {
+        en: "Dr. Andino focuses on endodontic treatments to relieve pain and preserve natural teeth whenever possible.",
+        es: "La Dra. Andino se especializa en tratamientos de endodoncia para aliviar el dolor y preservar los dientes naturales siempre que sea posible.",
+      },
+      photoUrl: "assets/images/dentists/florencia-andino.jpeg",
+    },
+    {
       name: "Dra. Nadyne Reyes",
       title: {
         en: "Specialist in Orthopedics and Maxillofacial Orthodontics",
@@ -259,18 +271,6 @@ const config = {
         es: "La Dra. Flores ofrece cirugía dental integral y cuidado restaurativo con un enfoque gentil y centrado en el paciente.",
       },
       photoUrl: "assets/images/dentists/jessica-flores.jpeg",
-    },
-    {
-      name: "Dra. Florencia Andino",
-      title: {
-        en: "Endodontics Specialist",
-        es: "Especialista en Endodoncia",
-      },
-      bio: {
-        en: "Dr. Andino focuses on endodontic treatments to relieve pain and preserve natural teeth whenever possible.",
-        es: "La Dra. Andino se especializa en tratamientos de endodoncia para aliviar el dolor y preservar los dientes naturales siempre que sea posible.",
-      },
-      photoUrl: "assets/images/dentists/florencia-andino.jpeg",
     },
     {
       name: "Dra. Zury Flores",
