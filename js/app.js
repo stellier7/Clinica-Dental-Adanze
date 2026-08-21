@@ -455,12 +455,26 @@
     );
   }
 
+  function prependInfiniteClone(container, lastItem) {
+    container.querySelectorAll('[data-clone="start"]').forEach((el) => el.remove());
+    if (!lastItem) return null;
+
+    const clone = lastItem.cloneNode(true);
+    clone.setAttribute("data-clone", "start");
+    clone.setAttribute("aria-hidden", "true");
+    clone.querySelectorAll("img").forEach((img) => {
+      img.alt = "";
+    });
+    container.insertBefore(clone, container.firstChild);
+    return clone;
+  }
+
   function appendInfiniteClone(container, firstItem) {
-    container.querySelectorAll("[data-clone]").forEach((el) => el.remove());
+    container.querySelectorAll('[data-clone="end"]').forEach((el) => el.remove());
     if (!firstItem) return null;
 
     const clone = firstItem.cloneNode(true);
-    clone.setAttribute("data-clone", "true");
+    clone.setAttribute("data-clone", "end");
     clone.setAttribute("aria-hidden", "true");
     clone.querySelectorAll("img").forEach((img) => {
       img.alt = "";
@@ -497,17 +511,34 @@
   }
 
   function resetInfiniteCloneJump(container, realItems) {
-    const clone = container.querySelector('[data-clone="true"]');
-    if (!clone || !realItems[0]) return false;
+    const realCount = realItems.length;
+    if (!realCount) return false;
 
     const center = container.scrollLeft + container.clientWidth / 2;
-    const cloneCenter = clone.offsetLeft + clone.offsetWidth / 2;
-    if (Math.abs(center - cloneCenter) > 28) return false;
 
-    container.style.scrollBehavior = "auto";
-    scrollCarouselItemToCenter(container, realItems[0], "auto");
-    container.style.scrollBehavior = "";
-    return true;
+    const endClone = container.querySelector('[data-clone="end"]');
+    if (endClone && realItems[0]) {
+      const cloneCenter = endClone.offsetLeft + endClone.offsetWidth / 2;
+      if (Math.abs(center - cloneCenter) <= 28) {
+        container.style.scrollBehavior = "auto";
+        scrollCarouselItemToCenter(container, realItems[0], "auto");
+        container.style.scrollBehavior = "";
+        return 0;
+      }
+    }
+
+    const startClone = container.querySelector('[data-clone="start"]');
+    if (startClone && realCount > 1 && realItems[realCount - 1]) {
+      const cloneCenter = startClone.offsetLeft + startClone.offsetWidth / 2;
+      if (Math.abs(center - cloneCenter) <= 28) {
+        container.style.scrollBehavior = "auto";
+        scrollCarouselItemToCenter(container, realItems[realCount - 1], "auto");
+        container.style.scrollBehavior = "";
+        return realCount - 1;
+      }
+    }
+
+    return false;
   }
 
   // -------------------------------------------------------------------------
@@ -523,6 +554,7 @@
     const section = document.querySelector('[data-section="dentists"]');
     if (!section) return;
 
+    prependInfiniteClone(grid, realCards[realCards.length - 1]);
     appendInfiniteClone(grid, realCards[0]);
     const realCount = realCards.length;
 
@@ -532,9 +564,19 @@
     let hasStarted = false;
     let isAutoScrolling = false;
 
-    function scrollToCard(index, behavior = "smooth") {
+    function scrollToCard(realIndex, behavior = "smooth") {
       const allCards = grid.querySelectorAll(".dentist-card");
-      const card = allCards[index];
+      let targetIndex;
+
+      if (realIndex === -1) {
+        targetIndex = 0;
+      } else if (realIndex === realCount) {
+        targetIndex = realCount + 1;
+      } else {
+        targetIndex = realIndex + 1;
+      }
+
+      const card = allCards[targetIndex];
       if (!card) return;
 
       isAutoScrolling = true;
@@ -544,20 +586,30 @@
         isAutoScrolling = false;
       };
 
-      if (index === realCount) {
+      if (realIndex === realCount) {
         setTimeout(() => {
-          scrollCarouselItemToCenter(grid, allCards[0], "auto");
+          scrollCarouselItemToCenter(grid, realCards[0], "auto");
           currentIndex = 0;
           release();
         }, prefersReducedMotion.matches ? 0 : 650);
+      } else if (realIndex === -1) {
+        setTimeout(() => {
+          scrollCarouselItemToCenter(grid, realCards[realCount - 1], "auto");
+          currentIndex = realCount - 1;
+          release();
+        }, prefersReducedMotion.matches ? 0 : 650);
       } else {
-        currentIndex = index;
+        currentIndex = realIndex;
         setTimeout(release, prefersReducedMotion.matches ? 0 : 650);
       }
     }
 
     function goToNext() {
-      scrollToCard(currentIndex + 1);
+      if (currentIndex === realCount - 1) {
+        scrollToCard(realCount);
+      } else {
+        scrollToCard(currentIndex + 1);
+      }
     }
 
     function startAutoScroll() {
@@ -594,8 +646,9 @@
       () => {
         if (isAutoScrolling) return;
 
-        if (resetInfiniteCloneJump(grid, realCards)) {
-          currentIndex = 0;
+        const jumpedIndex = resetInfiniteCloneJump(grid, realCards);
+        if (jumpedIndex !== false) {
+          currentIndex = jumpedIndex;
           return;
         }
 
@@ -1726,8 +1779,9 @@
       () => {
         if (isAutoScrolling) return;
 
-        if (resetInfiniteCloneJump(scroller, realItems)) {
-          currentIndex = 0;
+        const jumpedIndex = resetInfiniteCloneJump(scroller, realItems);
+        if (jumpedIndex !== false) {
+          currentIndex = jumpedIndex;
           return;
         }
 

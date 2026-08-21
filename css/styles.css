@@ -809,11 +809,11 @@ body.nav-open {
   scroll-snap-stop: always;
 }
 
-.dentists__grid[data-scrollable="true"] .dentist-card:first-child {
+.dentists__grid[data-scrollable="true"] .dentist-card[data-clone="start"] {
   margin-left: max(1rem, 5%);
 }
 
-.dentists__grid[data-scrollable="true"] .dentist-card[data-clone] {
+.dentists__grid[data-scrollable="true"] .dentist-card[data-clone="end"] {
   margin-right: max(1rem, 5%);
 }
 
@@ -879,11 +879,11 @@ body.nav-open {
     flex-basis: min(82%, 760px);
   }
 
-  .dentists__grid[data-scrollable="true"] .dentist-card:first-child {
+  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone="start"] {
     margin-left: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
   }
 
-  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone] {
+  .dentists__grid[data-scrollable="true"] .dentist-card[data-clone="end"] {
     margin-right: max(2rem, calc((100vw - var(--container)) / 2 + 1rem));
   }
 }
