@@ -35,6 +35,7 @@
   bindGlobalUI();
   initHeaderScroll();
   initTestimonialsCarousel();
+  initDentistsCarousel();
   initVerticalScrollChaining();
   
   // Initialize animations after content renders
@@ -443,8 +444,6 @@
         </article>`;
       })
       .join("");
-
-    setupDentistsCarousel(grid);
   }
 
   // -------------------------------------------------------------------------
@@ -470,33 +469,12 @@
     return clone;
   }
 
-  function prependInfiniteClone(container, lastItem) {
-    container.querySelectorAll('[data-clone="start"]').forEach((el) => el.remove());
-    if (!lastItem) return null;
-
-    const clone = lastItem.cloneNode(true);
-    clone.setAttribute("data-clone", "start");
-    clone.setAttribute("aria-hidden", "true");
-    clone.querySelectorAll("img").forEach((img) => {
-      img.alt = "";
-    });
-    container.insertBefore(clone, container.firstChild);
-    return clone;
-  }
-
   function scrollCarouselItemToCenter(container, item, behavior = "smooth") {
     if (!container || !item) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const itemRect = item.getBoundingClientRect();
-    const targetLeft =
-      container.scrollLeft +
-      (itemRect.left - containerRect.left) -
-      (container.clientWidth - item.offsetWidth) / 2;
-    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-
+    const left = item.offsetLeft - (container.clientWidth - item.offsetWidth) / 2;
     container.scrollTo({
-      left: Math.min(maxScroll, Math.max(0, targetLeft)),
+      left: Math.max(0, left),
       behavior: prefersReducedMotion.matches ? "auto" : behavior,
     });
   }
@@ -552,20 +530,8 @@
   // -------------------------------------------------------------------------
   // Dentists Carousel (for multiple dentists)
   // -------------------------------------------------------------------------
-  let dentistsCarouselCleanup = null;
-
   function initDentistsCarousel() {
     const grid = document.querySelector("[data-dentists-grid]");
-    if (!grid) return;
-    setupDentistsCarousel(grid);
-  }
-
-  function setupDentistsCarousel(grid) {
-    if (dentistsCarouselCleanup) {
-      dentistsCarouselCleanup();
-      dentistsCarouselCleanup = null;
-    }
-
     if (!grid || grid.getAttribute("data-scrollable") !== "true") return;
 
     const realCards = getRealCarouselItems(grid, ".dentist-card");
@@ -574,10 +540,9 @@
     const section = document.querySelector('[data-section="dentists"]');
     if (!section) return;
 
-    const realCount = realCards.length;
-    prependInfiniteClone(grid, realCards[realCount - 1]);
     appendInfiniteClone(grid, realCards[0]);
 
+    const realCount = realCards.length;
     let currentIndex = 0;
     let autoScrollInterval = null;
     let isPaused = true;
@@ -585,93 +550,45 @@
     let scrollEndTimer = null;
     let resumeTimer = null;
     let userIsScrolling = false;
-    let isAutoScrolling = false;
+
+    grid.style.scrollBehavior = "auto";
+    scrollCarouselItemToCenter(grid, realCards[0], "auto");
+    grid.style.scrollBehavior = "";
+
+    function centerCard(card, behavior = "smooth") {
+      if (!card) return;
+      scrollCarouselItemToCenter(grid, card, behavior);
+    }
 
     function cardIsCentered(card) {
       if (!card) return false;
       const viewportCenter = grid.scrollLeft + grid.clientWidth / 2;
       const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      return Math.abs(viewportCenter - cardCenter) <= card.offsetWidth * 0.1;
+      return Math.abs(viewportCenter - cardCenter) <= card.offsetWidth * 0.12;
     }
 
     function syncCurrentIndex() {
       currentIndex = getClosestCarouselIndex(grid, realCards);
     }
 
-    function withSnapDisabled(fn) {
-      grid.style.scrollSnapType = "none";
-      fn();
-      requestAnimationFrame(() => {
-        grid.style.scrollSnapType = "";
-      });
-    }
-
+    // After scrolling right onto the end clone, shift scroll position in place
+    // so the real first card is shown without animating back to the left.
     function snapEndCloneToStart() {
       const endClone = grid.querySelector('[data-clone="end"]');
       const realFirst = realCards[0];
       if (!endClone || !realFirst || !cardIsCentered(endClone)) return false;
 
-      withSnapDisabled(() => {
-        grid.style.scrollBehavior = "auto";
-        grid.scrollLeft -= endClone.offsetLeft - realFirst.offsetLeft;
-        grid.style.scrollBehavior = "";
+      const delta = endClone.offsetLeft - realFirst.offsetLeft;
+      grid.style.scrollSnapType = "none";
+      grid.style.scrollBehavior = "auto";
+      grid.scrollLeft -= delta;
+      grid.style.scrollBehavior = "";
+      requestAnimationFrame(() => {
+        grid.style.scrollSnapType = "";
       });
 
       currentIndex = 0;
       return true;
-    }
-
-    function snapStartCloneToEnd() {
-      const startClone = grid.querySelector('[data-clone="start"]');
-      const realLast = realCards[realCount - 1];
-      if (!startClone || !realLast || !cardIsCentered(startClone)) return false;
-
-      withSnapDisabled(() => {
-        grid.style.scrollBehavior = "auto";
-        grid.scrollLeft -= startClone.offsetLeft - realLast.offsetLeft;
-        grid.style.scrollBehavior = "";
-      });
-
-      currentIndex = realCount - 1;
-      return true;
-    }
-
-    function centerCard(card, behavior = "smooth") {
-      if (!card) return;
-      withSnapDisabled(() => {
-        scrollCarouselItemToCenter(grid, card, behavior);
-      });
-    }
-
-    function scrollToIndex(index, behavior = "smooth") {
-      let target = realCards[index];
-      let resolvedIndex = index;
-
-      if (index >= realCount) {
-        target = grid.querySelector('[data-clone="end"]');
-        resolvedIndex = realCount;
-      } else if (index < 0) {
-        target = grid.querySelector('[data-clone="start"]');
-        resolvedIndex = -1;
-      }
-
-      if (!target) return;
-
-      isAutoScrolling = true;
-      centerCard(target, behavior);
-
-      const settleMs = prefersReducedMotion.matches ? 0 : 550;
-      setTimeout(() => {
-        if (resolvedIndex >= realCount) {
-          snapEndCloneToStart();
-        } else if (resolvedIndex < 0) {
-          snapStartCloneToEnd();
-        } else {
-          currentIndex = resolvedIndex;
-          centerCard(realCards[currentIndex], "auto");
-        }
-        isAutoScrolling = false;
-      }, settleMs);
     }
 
     function scheduleAutoScrollResume() {
@@ -683,16 +600,13 @@
     }
 
     function onUserScrollStart() {
-      if (isAutoScrolling) return;
       userIsScrolling = true;
       pauseAutoScroll();
       clearTimeout(resumeTimer);
     }
 
     function onScrollSettled() {
-      if (isAutoScrolling) return;
-
-      if (snapEndCloneToStart() || snapStartCloneToEnd()) {
+      if (snapEndCloneToStart()) {
         if (userIsScrolling) {
           userIsScrolling = false;
           scheduleAutoScrollResume();
@@ -702,10 +616,6 @@
 
       syncCurrentIndex();
 
-      if (!cardIsCentered(realCards[currentIndex])) {
-        centerCard(realCards[currentIndex], "smooth");
-      }
-
       if (userIsScrolling) {
         userIsScrolling = false;
         scheduleAutoScrollResume();
@@ -713,11 +623,18 @@
     }
 
     function advance() {
-      scrollToIndex(currentIndex + 1);
+      if (currentIndex < realCount - 1) {
+        currentIndex += 1;
+        centerCard(realCards[currentIndex]);
+        return;
+      }
+
+      const endClone = grid.querySelector('[data-clone="end"]');
+      centerCard(endClone);
     }
 
     function startAutoScroll() {
-      if (isPaused || autoScrollInterval || prefersReducedMotion.matches) return;
+      if (isPaused || autoScrollInterval) return;
       autoScrollInterval = setInterval(advance, 5000);
     }
 
@@ -729,73 +646,51 @@
       }
     }
 
-    function onMouseLeave() {
+    grid.addEventListener("mouseenter", pauseAutoScroll);
+    grid.addEventListener("mouseleave", () => {
       isPaused = false;
       startAutoScroll();
-    }
-
-    function onScroll() {
-      if (isAutoScrolling) return;
-      clearTimeout(scrollEndTimer);
-      scrollEndTimer = setTimeout(onScrollSettled, 140);
-    }
-
-    function onResize() {
-      centerCard(realCards[currentIndex], "auto");
-    }
-
-    function onSectionVisible(entries) {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting || hasStarted) return;
-        hasStarted = true;
-        currentIndex = 0;
-        requestAnimationFrame(() => {
-          centerCard(realCards[0], "auto");
-          isPaused = false;
-          startAutoScroll();
-        });
-        observer.unobserve(section);
-      });
-    }
-
-    grid.style.scrollBehavior = "auto";
-    centerCard(realCards[0], "auto");
-    grid.style.scrollBehavior = "";
-
-    grid.addEventListener("mouseenter", pauseAutoScroll);
-    grid.addEventListener("mouseleave", onMouseLeave);
+    });
     grid.addEventListener("touchstart", onUserScrollStart, { passive: true });
     grid.addEventListener("wheel", onUserScrollStart, { passive: true });
-    grid.addEventListener("scroll", onScroll, { passive: true });
+
+    grid.addEventListener(
+      "scroll",
+      () => {
+        clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(onScrollSettled, 120);
+      },
+      { passive: true }
+    );
 
     if ("onscrollend" in grid) {
       grid.addEventListener("scrollend", onScrollSettled, { passive: true });
     }
 
-    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener(
+      "resize",
+      () => centerCard(realCards[currentIndex], "auto"),
+      { passive: true }
+    );
 
-    const observer = new IntersectionObserver(onSectionVisible, {
-      threshold: 0.2,
-      rootMargin: "0px 0px -10% 0px",
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting || hasStarted) return;
+          hasStarted = true;
+          currentIndex = 0;
+          requestAnimationFrame(() => {
+            centerCard(realCards[0], "auto");
+            isPaused = false;
+            startAutoScroll();
+          });
+          observer.unobserve(section);
+        });
+      },
+      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
+    );
+
     observer.observe(section);
-
-    dentistsCarouselCleanup = () => {
-      pauseAutoScroll();
-      clearTimeout(scrollEndTimer);
-      clearTimeout(resumeTimer);
-      observer.disconnect();
-      grid.removeEventListener("mouseenter", pauseAutoScroll);
-      grid.removeEventListener("mouseleave", onMouseLeave);
-      grid.removeEventListener("touchstart", onUserScrollStart);
-      grid.removeEventListener("wheel", onUserScrollStart);
-      grid.removeEventListener("scroll", onScroll);
-      if ("onscrollend" in grid) {
-        grid.removeEventListener("scrollend", onScrollSettled);
-      }
-      window.removeEventListener("resize", onResize);
-      grid.querySelectorAll("[data-clone]").forEach((el) => el.remove());
-    };
   }
 
   // -------------------------------------------------------------------------

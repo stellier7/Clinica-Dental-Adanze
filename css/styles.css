@@ -786,7 +786,7 @@ body.nav-open {
 
 /* When multiple dentists, enable horizontal scroll */
 .dentists__grid[data-scrollable="true"] {
-  --dentist-card-width: 78%;
+  --dentist-card-width: 90%;
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
