@@ -36,6 +36,7 @@
   initHeaderScroll();
   initTestimonialsCarousel();
   initDentistsCarousel();
+  initVerticalScrollChaining();
   
   // Initialize animations after content renders
   setTimeout(() => {
@@ -412,8 +413,10 @@
     // Enable horizontal scroll for multiple dentists
     if (dentists.length > 1) {
       grid.setAttribute('data-scrollable', 'true');
+      grid.setAttribute('data-vertical-scroll-chain', '');
     } else {
       grid.removeAttribute('data-scrollable');
+      grid.removeAttribute('data-vertical-scroll-chain');
     }
     
     grid.innerHTML = dentists
@@ -835,6 +838,11 @@
 
     card.innerHTML = `
       <div class="location__map">
+        <button
+          type="button"
+          class="location__map-shield"
+          aria-label="${escapeAttr(t("location.mapInteract"))}"
+        ></button>
         <iframe
           title="${escapeAttr(cfg.practice.name)}"
           src="${escapeAttr(mapsEmbed)}"
@@ -854,6 +862,8 @@
           )}</a>
         </div>
       </div>`;
+
+    bindMapScrollShield(card.querySelector(".location__map"));
   }
 
   // -------------------------------------------------------------------------
@@ -997,6 +1007,70 @@
     toggle.setAttribute("aria-label", t("nav.openMenu"));
     document.body.classList.remove("nav-open");
   }
+
+  // -------------------------------------------------------------------------
+  // Scroll chaining — route vertical wheel over carousels to the page
+  // (fixes iPad + mouse and other pointer devices; touch swipe unchanged)
+  // -------------------------------------------------------------------------
+  function initVerticalScrollChaining() {
+    document.addEventListener(
+      "wheel",
+      (event) => {
+        const chainTarget = event.target.closest("[data-vertical-scroll-chain]");
+        if (!chainTarget) return;
+
+        const { deltaX, deltaY } = event;
+        if (deltaY === 0 || Math.abs(deltaX) > Math.abs(deltaY)) return;
+
+        window.scrollBy({
+          top: deltaY,
+          left: 0,
+          behavior: "auto",
+        });
+        event.preventDefault();
+      },
+      { capture: true, passive: false }
+    );
+  }
+
+  function bindMapScrollShield(map) {
+    if (!map) return;
+
+    const shield = map.querySelector(".location__map-shield");
+    if (!shield) return;
+
+    shield.addEventListener(
+      "wheel",
+      (event) => {
+        const { deltaX, deltaY } = event;
+        if (deltaY === 0 || Math.abs(deltaX) > Math.abs(deltaY)) return;
+
+        window.scrollBy({
+          top: deltaY,
+          left: 0,
+          behavior: "auto",
+        });
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    shield.addEventListener("click", () => {
+      map.classList.add("is-interactive");
+    });
+
+    if (!bindMapScrollShield.outsideBound) {
+      bindMapScrollShield.outsideBound = true;
+      document.addEventListener("click", (event) => {
+        document.querySelectorAll(".location__map.is-interactive").forEach((activeMap) => {
+          if (!activeMap.contains(event.target)) {
+            activeMap.classList.remove("is-interactive");
+          }
+        });
+      });
+    }
+  }
+  bindMapScrollShield.outsideBound = false;
 
   // -------------------------------------------------------------------------
   // Header — hide on scroll down, show on scroll up (iOS-friendly)

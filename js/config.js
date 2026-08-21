@@ -132,6 +132,7 @@ const config = {
         hours: "Hours",
         call: "Call Us",
         directions: "Get Directions",
+        mapInteract: "Tap to interact with the map",
         closed: "Closed",
         days: {
           mon: "Monday",
@@ -203,6 +204,7 @@ const config = {
         hours: "Horario",
         call: "Llámanos",
         directions: "Cómo Llegar",
+        mapInteract: "Toca para interactuar con el mapa",
         closed: "Cerrado",
         days: {
           mon: "Lunes",
