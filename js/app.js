@@ -36,6 +36,8 @@
   initHeaderScroll();
   initTestimonialsCarousel();
   initDentistsCarousel();
+  initGalleryCarousel();
+  initGalleryLightbox();
   initVerticalScrollChaining();
   
   // Initialize animations after content renders
@@ -122,6 +124,7 @@
     renderFooter();
     renderStickyBar();
     applyStaticI18n();
+    updateGalleryLightboxLabels();
     refreshAnimations();
   }
 
@@ -397,10 +400,144 @@
   // -------------------------------------------------------------------------
   // Dentists
   // -------------------------------------------------------------------------
+  /**
+   * Build carousel slide order for Embla loop + neighbor peeks.
+   * - 1 item: static (no carousel)
+   * - 2 items: sandwich six slides [B, A, B, A, B, A], start on A (first in config)
+   * - 3–4 items: repeat roster to 6 slides, start on A
+   * - 5+ items: one slide per item (5 slides loops reliably at gallery width)
+   */
+  function buildLoopCarouselTrack(items) {
+    if (items.length <= 1) {
+      return { trackItems: items, carouselStartIndex: 0 };
+    }
+
+    if (items.length === 2) {
+      return {
+        trackItems: Array.from({ length: 6 }, (_, index) => items[(index + 1) % 2]),
+        carouselStartIndex: 1,
+      };
+    }
+
+    if (items.length >= 3 && items.length <= 4) {
+      return {
+        trackItems: Array.from({ length: 6 }, (_, index) => items[index % items.length]),
+        carouselStartIndex: 0,
+      };
+    }
+
+    return { trackItems: items, carouselStartIndex: 0 };
+  }
+
+  function buildDentistsCarouselTrack(dentists) {
+    const { trackItems, carouselStartIndex } = buildLoopCarouselTrack(dentists);
+    return { trackDentists: trackItems, carouselStartIndex };
+  }
+
+  function buildGalleryCarouselTrack(images) {
+    const { trackItems, carouselStartIndex } = buildLoopCarouselTrack(images);
+    return { trackImages: trackItems, carouselStartIndex };
+  }
+
+  function initLoopEmblaSection({
+    viewport,
+    section,
+    startIndex,
+    delay,
+    slideSelector,
+    label,
+    apiKey,
+    nav,
+  }) {
+    if (!window.CarouselsEmbla?.initLoopCarousel) {
+      console.error("CarouselsEmbla bundle missing — run npm run build:carousels-embla");
+      return null;
+    }
+
+    const { embla, autoplay, loopActive } = window.CarouselsEmbla.initLoopCarousel(viewport, {
+      delay,
+      reducedMotion: prefersReducedMotion.matches,
+      startIndex,
+      slideSelector,
+      label,
+    });
+
+    viewport.dataset.emblaLoop = loopActive ? "true" : "false";
+
+    const refreshLoop = () => {
+      if (!embla.internalEngine().options.loop) return;
+      embla.internalEngine().slideLooper.loop();
+    };
+
+    const settleToStart = () => {
+      refreshLoop();
+      embla.scrollTo(startIndex, true);
+    };
+
+    embla.on("init", settleToStart);
+    embla.on("reInit", settleToStart);
+    embla.on("scroll", refreshLoop);
+    embla.on("settle", refreshLoop);
+    requestAnimationFrame(settleToStart);
+
+    if (document.readyState === "complete") {
+      requestAnimationFrame(settleToStart);
+    } else {
+      window.addEventListener("load", () => requestAnimationFrame(settleToStart), { once: true });
+    }
+
+    viewport[apiKey] = embla;
+
+    let sectionVisible = false;
+
+    const resumeAutoplay = () => {
+      if (!sectionVisible || !autoplay || prefersReducedMotion.matches) return;
+      autoplay.play();
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          sectionVisible = entry.isIntersecting;
+          if (sectionVisible) {
+            resumeAutoplay();
+          } else {
+            autoplay?.stop();
+          }
+        });
+      },
+      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
+    );
+
+    observer.observe(section);
+
+    embla.on("pointerUp", resumeAutoplay);
+    embla.on("reInit", resumeAutoplay);
+    viewport.addEventListener("touchend", resumeAutoplay, { passive: true });
+    viewport.addEventListener("touchcancel", resumeAutoplay, { passive: true });
+
+    if (nav?.prevBtn && nav?.nextBtn) {
+      nav.prevBtn.addEventListener("click", () => {
+        embla.scrollPrev();
+        resumeAutoplay();
+      });
+      nav.nextBtn.addEventListener("click", () => {
+        embla.scrollNext();
+        resumeAutoplay();
+      });
+    }
+
+    window.addEventListener("resize", () => embla.reInit(), { passive: true });
+
+    return embla;
+  }
+
   function renderDentists() {
     const section = document.querySelector('[data-section="dentists"]');
-    const grid = document.querySelector("[data-dentists-grid]");
-    if (!section || !grid) return;
+    const carousel = document.querySelector("[data-dentists-carousel]");
+    const viewport = document.querySelector("[data-dentists-viewport]");
+    const track = document.querySelector("[data-dentists-grid]");
+    if (!section || !carousel || !viewport || !track) return;
 
     const dentists = Array.isArray(cfg.dentists) ? cfg.dentists : [];
     if (!dentists.length) {
@@ -410,16 +547,19 @@
 
     section.hidden = false;
 
-    // Enable horizontal scroll for multiple dentists
-    if (dentists.length > 1) {
-      grid.setAttribute("data-scrollable", "true");
-      grid.setAttribute("data-vertical-scroll-chain", "");
-    } else {
-      grid.removeAttribute("data-scrollable");
-      grid.removeAttribute("data-vertical-scroll-chain");
-    }
+    const isCarousel = dentists.length > 1;
+    carousel.classList.toggle("dentists__carousel--active", isCarousel);
+    viewport.toggleAttribute("data-embla", isCarousel);
+    viewport.removeAttribute("data-vertical-scroll-chain");
 
-    grid.innerHTML = dentists
+    // Build track order for Embla loop + neighbor peeks (see buildDentistsCarouselTrack).
+    const { trackDentists, carouselStartIndex } = isCarousel
+      ? buildDentistsCarouselTrack(dentists)
+      : { trackDentists: dentists, carouselStartIndex: 0 };
+
+    viewport.dataset.carouselStartIndex = String(carouselStartIndex);
+
+    track.innerHTML = trackDentists
       .map((d) => {
         const initials = (d.name || "")
           .split(/\s+/)
@@ -447,259 +587,40 @@
   }
 
   // -------------------------------------------------------------------------
-  // Carousel helpers
-  // -------------------------------------------------------------------------
-  function getRealCarouselItems(container, selector) {
-    return Array.from(container.querySelectorAll(selector)).filter(
-      (el) => !el.hasAttribute("data-clone")
-    );
-  }
-
-  function appendInfiniteClone(container, firstItem) {
-    container.querySelectorAll('[data-clone="end"]').forEach((el) => el.remove());
-    if (!firstItem) return null;
-
-    const clone = firstItem.cloneNode(true);
-    clone.setAttribute("data-clone", "end");
-    clone.setAttribute("aria-hidden", "true");
-    clone.querySelectorAll("img").forEach((img) => {
-      img.alt = "";
-    });
-    container.appendChild(clone);
-    return clone;
-  }
-
-  function scrollCarouselItemToCenter(container, item, behavior = "smooth") {
-    if (!container || !item) return;
-
-    const left = item.offsetLeft - (container.clientWidth - item.offsetWidth) / 2;
-    container.scrollTo({
-      left: Math.max(0, left),
-      behavior: prefersReducedMotion.matches ? "auto" : behavior,
-    });
-  }
-
-  function getClosestCarouselIndex(container, items) {
-    const center = container.scrollLeft + container.clientWidth / 2;
-    let closestIndex = 0;
-    let closestDistance = Infinity;
-
-    items.forEach((item, index) => {
-      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-      const distance = Math.abs(center - itemCenter);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    return closestIndex;
-  }
-
-  function resetInfiniteCloneJump(container, realItems) {
-    const realCount = realItems.length;
-    if (!realCount) return false;
-
-    const center = container.scrollLeft + container.clientWidth / 2;
-
-    const endClone = container.querySelector('[data-clone="end"]');
-    if (endClone && realItems[0]) {
-      const cloneCenter = endClone.offsetLeft + endClone.offsetWidth / 2;
-      if (Math.abs(center - cloneCenter) <= 28) {
-        container.style.scrollBehavior = "auto";
-        scrollCarouselItemToCenter(container, realItems[0], "auto");
-        container.style.scrollBehavior = "";
-        return 0;
-      }
-    }
-
-    const startClone = container.querySelector('[data-clone="start"]');
-    if (startClone && realCount > 1 && realItems[realCount - 1]) {
-      const cloneCenter = startClone.offsetLeft + startClone.offsetWidth / 2;
-      if (Math.abs(center - cloneCenter) <= 28) {
-        container.style.scrollBehavior = "auto";
-        scrollCarouselItemToCenter(container, realItems[realCount - 1], "auto");
-        container.style.scrollBehavior = "";
-        return realCount - 1;
-      }
-    }
-
-    return false;
-  }
-
-  // -------------------------------------------------------------------------
-  // Dentists Carousel (for multiple dentists)
+  // Dentists Carousel (Embla — loop + autoplay)
   // -------------------------------------------------------------------------
   function initDentistsCarousel() {
-    const grid = document.querySelector("[data-dentists-grid]");
-    if (!grid || grid.getAttribute("data-scrollable") !== "true") return;
-
-    const realCards = getRealCarouselItems(grid, ".dentist-card");
-    if (realCards.length <= 1) return;
+    const viewport = document.querySelector("[data-dentists-viewport]");
+    if (!viewport || !viewport.hasAttribute("data-embla")) return;
 
     const section = document.querySelector('[data-section="dentists"]');
     if (!section) return;
 
-    appendInfiniteClone(grid, realCards[0]);
+    const startIndex = Number(viewport.dataset.carouselStartIndex || "0");
 
-    const realCount = realCards.length;
-    let currentIndex = 0;
-    let autoScrollInterval = null;
-    let isPaused = true;
-    let hasStarted = false;
-    let scrollEndTimer = null;
-    let resumeTimer = null;
-    let userIsScrolling = false;
-
-    grid.style.scrollBehavior = "auto";
-    scrollCarouselItemToCenter(grid, realCards[0], "auto");
-    grid.style.scrollBehavior = "";
-
-    function centerCard(card, behavior = "smooth") {
-      if (!card) return;
-      scrollCarouselItemToCenter(grid, card, behavior);
-    }
-
-    function cardIsCentered(card) {
-      if (!card) return false;
-      const viewportCenter = grid.scrollLeft + grid.clientWidth / 2;
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      return Math.abs(viewportCenter - cardCenter) <= card.offsetWidth * 0.12;
-    }
-
-    function syncCurrentIndex() {
-      currentIndex = getClosestCarouselIndex(grid, realCards);
-    }
-
-    // After scrolling right onto the end clone, shift scroll position in place
-    // so the real first card is shown without animating back to the left.
-    function snapEndCloneToStart() {
-      const endClone = grid.querySelector('[data-clone="end"]');
-      const realFirst = realCards[0];
-      if (!endClone || !realFirst || !cardIsCentered(endClone)) return false;
-
-      const delta = endClone.offsetLeft - realFirst.offsetLeft;
-      grid.style.scrollSnapType = "none";
-      grid.style.scrollBehavior = "auto";
-      grid.scrollLeft -= delta;
-      grid.style.scrollBehavior = "";
-      requestAnimationFrame(() => {
-        grid.style.scrollSnapType = "";
-      });
-
-      currentIndex = 0;
-      return true;
-    }
-
-    function scheduleAutoScrollResume() {
-      clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(() => {
-        isPaused = false;
-        startAutoScroll();
-      }, 7000);
-    }
-
-    function onUserScrollStart() {
-      userIsScrolling = true;
-      pauseAutoScroll();
-      clearTimeout(resumeTimer);
-    }
-
-    function onScrollSettled() {
-      if (snapEndCloneToStart()) {
-        if (userIsScrolling) {
-          userIsScrolling = false;
-          scheduleAutoScrollResume();
-        }
-        return;
-      }
-
-      syncCurrentIndex();
-
-      if (userIsScrolling) {
-        userIsScrolling = false;
-        scheduleAutoScrollResume();
-      }
-    }
-
-    function advance() {
-      if (currentIndex < realCount - 1) {
-        currentIndex += 1;
-        centerCard(realCards[currentIndex]);
-        return;
-      }
-
-      const endClone = grid.querySelector('[data-clone="end"]');
-      centerCard(endClone);
-    }
-
-    function startAutoScroll() {
-      if (isPaused || autoScrollInterval) return;
-      autoScrollInterval = setInterval(advance, 5000);
-    }
-
-    function pauseAutoScroll() {
-      isPaused = true;
-      if (autoScrollInterval) {
-        clearInterval(autoScrollInterval);
-        autoScrollInterval = null;
-      }
-    }
-
-    grid.addEventListener("mouseenter", pauseAutoScroll);
-    grid.addEventListener("mouseleave", () => {
-      isPaused = false;
-      startAutoScroll();
+    initLoopEmblaSection({
+      viewport,
+      section,
+      startIndex,
+      delay: 5000,
+      slideSelector: ".dentist-card",
+      label: "Dentists carousel",
+      apiKey: "_dentistsEmblaApi",
     });
-    grid.addEventListener("touchstart", onUserScrollStart, { passive: true });
-    grid.addEventListener("wheel", onUserScrollStart, { passive: true });
-
-    grid.addEventListener(
-      "scroll",
-      () => {
-        clearTimeout(scrollEndTimer);
-        scrollEndTimer = setTimeout(onScrollSettled, 120);
-      },
-      { passive: true }
-    );
-
-    if ("onscrollend" in grid) {
-      grid.addEventListener("scrollend", onScrollSettled, { passive: true });
-    }
-
-    window.addEventListener(
-      "resize",
-      () => centerCard(realCards[currentIndex], "auto"),
-      { passive: true }
-    );
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting || hasStarted) return;
-          hasStarted = true;
-          currentIndex = 0;
-          requestAnimationFrame(() => {
-            centerCard(realCards[0], "auto");
-            isPaused = false;
-            startAutoScroll();
-          });
-          observer.unobserve(section);
-        });
-      },
-      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
-    );
-
-    observer.observe(section);
   }
 
   // -------------------------------------------------------------------------
   // Gallery
   // -------------------------------------------------------------------------
   function renderGallery() {
+    closeGalleryLightbox();
+
     const section = document.querySelector('[data-section="gallery"]');
-    const scroller = document.querySelector("[data-gallery-scroller]");
-    if (!section || !scroller) return;
+    const carousel = document.querySelector("[data-gallery-carousel]");
+    const viewport = document.querySelector("[data-gallery-viewport]");
+    const track = document.querySelector("[data-gallery-track]");
+    const nav = document.querySelector("[data-gallery-nav]");
+    if (!section || !carousel || !viewport || !track) return;
 
     const images = Array.isArray(cfg.gallery) ? cfg.gallery.filter(Boolean) : [];
     if (!images.length) {
@@ -708,16 +629,247 @@
     }
 
     section.hidden = false;
-    scroller.innerHTML = images
-      .map(
-        (src, i) => `
-      <figure class="gallery__item">
+
+    const isCarousel = images.length > 1;
+    carousel.classList.toggle("gallery__carousel--active", isCarousel);
+    viewport.toggleAttribute("data-embla", isCarousel);
+    viewport.removeAttribute("data-vertical-scroll-chain");
+    if (nav) nav.hidden = !isCarousel;
+
+    const { trackImages, carouselStartIndex } = isCarousel
+      ? buildGalleryCarouselTrack(images)
+      : { trackImages: images, carouselStartIndex: 0 };
+
+    viewport.dataset.carouselStartIndex = String(carouselStartIndex);
+
+    const imageIndexBySrc = new Map(images.map((src, index) => [src, index]));
+
+    track.innerHTML = trackImages
+      .map((src) => {
+        const imageIndex = imageIndexBySrc.get(src) ?? 0;
+        const viewLabel = t("gallery.viewImage");
+        return `
+      <figure
+        class="gallery__item"
+        data-gallery-index="${imageIndex}"
+        role="button"
+        tabindex="0"
+        aria-label="${escapeAttr(`${viewLabel} ${imageIndex + 1}`)}"
+      >
         <img src="${escapeAttr(src)}" alt="${escapeAttr(
-          `${cfg.practice.name} — ${i + 1}`
+          `${cfg.practice.name} — ${imageIndex + 1}`
         )}" loading="lazy" decoding="async" />
-      </figure>`
-      )
+      </figure>`;
+      })
       .join("");
+  }
+
+  let galleryLightboxIndex = 0;
+  let galleryLightboxOpener = null;
+  let galleryLightboxImages = [];
+  let galleryPress = null;
+
+  function getGalleryImages() {
+    return Array.isArray(cfg.gallery) ? cfg.gallery.filter(Boolean) : [];
+  }
+
+  function initGalleryLightbox() {
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    const carousel = document.querySelector("[data-gallery-carousel]");
+    if (!lightbox || !carousel || lightbox.dataset.bound === "true") return;
+
+    lightbox.dataset.bound = "true";
+
+    carousel.addEventListener("pointerdown", (event) => {
+      const item = event.target.closest(".gallery__item");
+      if (!item || !carousel.contains(item)) return;
+
+      galleryPress = {
+        x: event.clientX,
+        y: event.clientY,
+        item,
+        pointerId: event.pointerId,
+      };
+    });
+
+    carousel.addEventListener("pointerup", (event) => {
+      if (!galleryPress || event.pointerId !== galleryPress.pointerId) return;
+
+      const { x, y, item } = galleryPress;
+      galleryPress = null;
+
+      const dx = Math.abs(event.clientX - x);
+      const dy = Math.abs(event.clientY - y);
+      if (dx > 12 || dy > 12) return;
+
+      const index = Number(item.dataset.galleryIndex);
+      if (Number.isNaN(index)) return;
+
+      openGalleryLightbox(index, item);
+    });
+
+    carousel.addEventListener("pointercancel", () => {
+      galleryPress = null;
+    });
+
+    carousel.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+
+      const item = event.target.closest(".gallery__item");
+      if (!item || !carousel.contains(item)) return;
+
+      event.preventDefault();
+      const index = Number(item.dataset.galleryIndex);
+      if (Number.isNaN(index)) return;
+
+      openGalleryLightbox(index, item);
+    });
+
+    lightbox.querySelectorAll("[data-gallery-lightbox-close]").forEach((button) => {
+      button.addEventListener("click", closeGalleryLightbox);
+    });
+
+    lightbox
+      .querySelector("[data-gallery-lightbox-prev]")
+      ?.addEventListener("click", () => stepGalleryLightbox(-1));
+    lightbox
+      .querySelector("[data-gallery-lightbox-next]")
+      ?.addEventListener("click", () => stepGalleryLightbox(1));
+
+    document.addEventListener("keydown", onGalleryLightboxKeydown);
+    updateGalleryLightboxLabels();
+  }
+
+  function openGalleryLightbox(index, opener) {
+    galleryLightboxImages = getGalleryImages();
+    if (!galleryLightboxImages.length) return;
+
+    galleryLightboxIndex = Math.max(0, Math.min(index, galleryLightboxImages.length - 1));
+    galleryLightboxOpener = opener ?? null;
+
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    if (!lightbox) return;
+
+    updateGalleryLightboxSlide();
+    updateGalleryLightboxLabels();
+
+    lightbox.hidden = false;
+    document.body.classList.add("gallery-lightbox-open");
+
+    document.querySelector("[data-gallery-viewport]")?._galleryEmblaApi?.plugins?.()?.autoplay?.stop();
+
+    lightbox.querySelector(".gallery-lightbox__close")?.focus();
+  }
+
+  function closeGalleryLightbox() {
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    if (!lightbox || lightbox.hidden) return;
+
+    lightbox.hidden = true;
+    document.body.classList.remove("gallery-lightbox-open");
+
+    galleryLightboxOpener?.focus?.();
+    galleryLightboxOpener = null;
+
+    if (!prefersReducedMotion.matches) {
+      document.querySelector("[data-gallery-viewport]")?._galleryEmblaApi?.plugins?.()?.autoplay?.play();
+    }
+  }
+
+  function stepGalleryLightbox(delta) {
+    const total = galleryLightboxImages.length;
+    if (total <= 1) return;
+
+    galleryLightboxIndex = (galleryLightboxIndex + delta + total) % total;
+    updateGalleryLightboxSlide();
+  }
+
+  function updateGalleryLightboxSlide() {
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    if (!lightbox) return;
+
+    const image = lightbox.querySelector("[data-gallery-lightbox-image]");
+    const counter = lightbox.querySelector("[data-gallery-lightbox-counter]");
+    const prevBtn = lightbox.querySelector("[data-gallery-lightbox-prev]");
+    const nextBtn = lightbox.querySelector("[data-gallery-lightbox-next]");
+    const src = galleryLightboxImages[galleryLightboxIndex];
+    const total = galleryLightboxImages.length;
+
+    if (image && src) {
+      image.src = src;
+      image.alt = `${cfg.practice.name} — ${galleryLightboxIndex + 1}`;
+    }
+
+    if (counter) {
+      counter.textContent = total > 1 ? `${galleryLightboxIndex + 1} / ${total}` : "";
+    }
+
+    const showNav = total > 1;
+    if (prevBtn) prevBtn.hidden = !showNav;
+    if (nextBtn) nextBtn.hidden = !showNav;
+  }
+
+  function updateGalleryLightboxLabels() {
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    if (!lightbox) return;
+
+    lightbox
+      .querySelector("[data-gallery-lightbox-dialog]")
+      ?.setAttribute("aria-label", t("gallery.preview"));
+    lightbox
+      .querySelector(".gallery-lightbox__close")
+      ?.setAttribute("aria-label", t("gallery.close"));
+    lightbox
+      .querySelector("[data-gallery-lightbox-prev]")
+      ?.setAttribute("aria-label", t("gallery.previous"));
+    lightbox
+      .querySelector("[data-gallery-lightbox-next]")
+      ?.setAttribute("aria-label", t("gallery.next"));
+  }
+
+  function onGalleryLightboxKeydown(event) {
+    const lightbox = document.querySelector("[data-gallery-lightbox]");
+    if (!lightbox || lightbox.hidden) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeGalleryLightbox();
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepGalleryLightbox(-1);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      stepGalleryLightbox(1);
+    }
+  }
+
+  function initGalleryCarousel() {
+    const viewport = document.querySelector("[data-gallery-viewport]");
+    if (!viewport || !viewport.hasAttribute("data-embla")) return;
+
+    const section = document.querySelector('[data-section="gallery"]');
+    if (!section) return;
+
+    const startIndex = Number(viewport.dataset.carouselStartIndex || "0");
+    const prevBtn = document.querySelector("[data-gallery-prev]");
+    const nextBtn = document.querySelector("[data-gallery-next]");
+
+    initLoopEmblaSection({
+      viewport,
+      section,
+      startIndex,
+      delay: 3000,
+      slideSelector: ".gallery__item",
+      label: "Gallery carousel",
+      apiKey: "_galleryEmblaApi",
+      nav: prevBtn && nextBtn ? { prevBtn, nextBtn } : null,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -765,8 +917,9 @@
         const index = Number(btn.getAttribute("data-dot-index"));
         const card = track.children[index];
         if (card) {
+          const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
           track.scrollTo({
-            left: card.offsetLeft,
+            left: Math.max(0, left),
             behavior: prefersReducedMotion.matches ? "auto" : "smooth",
           });
         }
@@ -777,9 +930,37 @@
   function initTestimonialsCarousel() {
     const track = document.querySelector("[data-testimonials-track]");
     const dots = document.querySelector("[data-testimonials-dots]");
+    const section = document.querySelector('[data-section="testimonials"]');
     if (!track || !dots) return;
 
-    // Keep dots in sync while swiping
+    const getActiveIndex = () => {
+      const cards = Array.from(track.children);
+      if (!cards.length) return 0;
+
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let active = 0;
+      let best = Infinity;
+
+      cards.forEach((card, i) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const dist = Math.abs(cardCenter - center);
+        if (dist < best) {
+          best = dist;
+          active = i;
+        }
+      });
+
+      return active;
+    };
+
+    const syncDots = () => {
+      const active = getActiveIndex();
+      dots.querySelectorAll(".testimonials__dot").forEach((dot, i) => {
+        if (i === active) dot.setAttribute("aria-current", "true");
+        else dot.removeAttribute("aria-current");
+      });
+    };
+
     let ticking = false;
     track.addEventListener(
       "scroll",
@@ -787,112 +968,151 @@
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
-          const cards = Array.from(track.children);
-          if (!cards.length) {
-            ticking = false;
-            return;
-          }
-          const scrollLeft = track.scrollLeft;
-          let active = 0;
-          let best = Infinity;
-          cards.forEach((card, i) => {
-            const dist = Math.abs(card.offsetLeft - scrollLeft);
-            if (dist < best) {
-              best = dist;
-              active = i;
-            }
-          });
-          dots.querySelectorAll(".testimonials__dot").forEach((dot, i) => {
-            if (i === active) dot.setAttribute("aria-current", "true");
-            else dot.removeAttribute("aria-current");
-          });
+          syncDots();
           ticking = false;
         });
       },
       { passive: true }
     );
-    
-    // Auto-scroll testimonials
-    initTestimonialsAutoScroll(track);
+
+    initTestimonialsAutoScroll(track, section, getActiveIndex, syncDots);
   }
 
   // -------------------------------------------------------------------------
   // TESTIMONIALS AUTO-SCROLL
   // -------------------------------------------------------------------------
-  function initTestimonialsAutoScroll(track) {
+  function initTestimonialsAutoScroll(track, section, getActiveIndex, syncDots) {
     if (!track || prefersReducedMotion.matches) return;
-    
-    const cards = track.querySelectorAll('.testimonial-card');
-    if (cards.length === 0) return;
-    
-    let autoScrollInterval;
+
+    const cards = track.querySelectorAll(".testimonial-card");
+    if (cards.length <= 1) return;
+
+    let autoScrollInterval = null;
+    let resumeTimeout = null;
     let isPaused = false;
+    let isAutoScrolling = false;
     let currentIndex = 0;
-    
-    function scrollToCard(index) {
+    let sectionVisible = false;
+
+    function scrollToCard(index, behavior = "smooth") {
       const card = cards[index];
       if (!card) return;
-      
+
+      isAutoScrolling = true;
+      const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
       track.scrollTo({
-        left: card.offsetLeft,
-        behavior: 'smooth'
+        left: Math.max(0, left),
+        behavior: prefersReducedMotion.matches ? "auto" : behavior,
       });
+
+      window.setTimeout(() => {
+        isAutoScrolling = false;
+      }, prefersReducedMotion.matches ? 0 : 650);
     }
-    
-    function startAutoScroll() {
-      if (isPaused) return;
-      
-      autoScrollInterval = setInterval(() => {
-        if (isPaused) return;
-        
-        currentIndex = (currentIndex + 1) % cards.length;
-        scrollToCard(currentIndex);
-      }, 3500); // Scroll every 3.5 seconds
-    }
-    
-    function pauseAutoScroll() {
-      isPaused = true;
+
+    function stopAutoScroll() {
       if (autoScrollInterval) {
         clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
       }
     }
-    
-    function resumeAutoScroll() {
+
+    function startAutoScroll() {
+      if (isPaused || !sectionVisible || autoScrollInterval) return;
+
+      autoScrollInterval = setInterval(() => {
+        if (isPaused || !sectionVisible) return;
+        currentIndex = (currentIndex + 1) % cards.length;
+        scrollToCard(currentIndex);
+      }, 3500);
+    }
+
+    function pauseAutoScroll() {
+      isPaused = true;
+      stopAutoScroll();
+    }
+
+    function resumeAutoScrollSoon(delay = 6000) {
+      clearTimeout(resumeTimeout);
+      resumeTimeout = setTimeout(() => {
+        currentIndex = getActiveIndex();
+        isPaused = false;
+        startAutoScroll();
+      }, delay);
+    }
+
+    track.addEventListener("mouseenter", pauseAutoScroll);
+    track.addEventListener("mouseleave", () => {
+      if (!sectionVisible) return;
       isPaused = false;
       startAutoScroll();
+    });
+
+    track.addEventListener(
+      "touchstart",
+      () => {
+        pauseAutoScroll();
+        clearTimeout(resumeTimeout);
+      },
+      { passive: true }
+    );
+
+    track.addEventListener(
+      "touchend",
+      () => {
+        currentIndex = getActiveIndex();
+        resumeAutoScrollSoon();
+      },
+      { passive: true }
+    );
+
+    track.addEventListener(
+      "touchcancel",
+      () => {
+        currentIndex = getActiveIndex();
+        resumeAutoScrollSoon();
+      },
+      { passive: true }
+    );
+
+    track.addEventListener(
+      "scroll",
+      () => {
+        if (isAutoScrolling) return;
+
+        pauseAutoScroll();
+        clearTimeout(resumeTimeout);
+        resumeTimeout = setTimeout(() => {
+          currentIndex = getActiveIndex();
+          syncDots();
+          isPaused = false;
+          startAutoScroll();
+        }, 6000);
+      },
+      { passive: true }
+    );
+
+    if (section) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            sectionVisible = entry.isIntersecting;
+            if (sectionVisible) {
+              currentIndex = getActiveIndex();
+              isPaused = false;
+              startAutoScroll();
+            } else {
+              pauseAutoScroll();
+            }
+          });
+        },
+        { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
+      );
+      observer.observe(section);
+    } else {
+      sectionVisible = true;
+      startAutoScroll();
     }
-    
-    // Pause on hover/touch
-    track.addEventListener('mouseenter', pauseAutoScroll);
-    track.addEventListener('mouseleave', resumeAutoScroll);
-    track.addEventListener('touchstart', pauseAutoScroll, { passive: true });
-    
-    // Pause when user manually scrolls
-    let scrollTimeout;
-    track.addEventListener('scroll', () => {
-      pauseAutoScroll();
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        // Update currentIndex based on current scroll position
-        const cards = Array.from(track.querySelectorAll('.testimonial-card'));
-        let closestIndex = 0;
-        let closestDist = Infinity;
-        
-        cards.forEach((card, i) => {
-          const dist = Math.abs(card.offsetLeft - track.scrollLeft);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestIndex = i;
-          }
-        });
-        
-        currentIndex = closestIndex;
-        resumeAutoScroll();
-      }, 6000); // Resume after 6 seconds (longer for testimonials since they're text-heavy)
-    }, { passive: true });
-    
-    // Start auto-scrolling
-    startAutoScroll();
   }
 
   // -------------------------------------------------------------------------
@@ -943,47 +1163,6 @@
 
     if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
       const destination = `${coords.lat},${coords.lng}`;
-      const placeRef = addr.mapsPlaceRef || "";
-      const placeName = addr.mapsPlaceName || cfg.practice.name;
-
-      if (placeRef) {
-        const latRad = (coords.lat * Math.PI) / 180;
-        const span = (40075016.686 * Math.cos(latRad)) / Math.pow(2, zoom);
-        const pb = [
-          "!1m18",
-          "!1m12",
-          "!1m3",
-          `!1d${span}`,
-          `!2d${coords.lng}`,
-          `!3d${coords.lat}`,
-          "!2m3",
-          "!1f0",
-          "!2f0",
-          "!3f0",
-          "!3m2",
-          "!1i1024",
-          "!2i768",
-          "!4f13.1",
-          "!3m3",
-          "!1m2",
-          `!1s${encodeURIComponent(placeRef)}`,
-          `!2s${encodeURIComponent(placeName)}`,
-          "!5e0",
-          "!3m2",
-          `!1s${lang}`,
-          "!2shn",
-          "!4v1",
-          "!5m2",
-          `!1s${lang}`,
-          "!2shn",
-        ].join("");
-
-        return {
-          embed: `https://www.google.com/maps/embed?pb=${pb}`,
-          link: addr.mapsLink || buildMapsDirectionsLink(addr, fullAddress, coords),
-        };
-      }
-
       return {
         embed: `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&hl=${lang}&z=${zoom}&ie=UTF8&iwloc=&output=embed`,
         link: addr.mapsLink || buildMapsDirectionsLink(addr, fullAddress, coords),
@@ -1233,8 +1412,12 @@
   }
 
   function initTouchScrollPriority() {
-    const getChainContainer = (target) =>
-      target instanceof Element ? target.closest("[data-vertical-scroll-chain]") : null;
+    const getChainContainer = (target) => {
+      if (!(target instanceof Element)) return null;
+      const container = target.closest("[data-vertical-scroll-chain]");
+      if (!container || container.hasAttribute("data-embla")) return null;
+      return container;
+    };
 
     document.addEventListener(
       "touchstart",
@@ -1412,9 +1595,6 @@
     // 4. Scroll-triggered animations for all sections
     initScrollAnimations();
     
-    // 5. Gallery navigation
-    initGalleryNav();
-    
     // 6. Show debug overlay if enabled
     if (DEBUG_MODE) {
       createDebugOverlay();
@@ -1474,9 +1654,7 @@
 
       // Background moves slower than scroll — classic parallax
       const mediaOffset = scrolled * 0.45;
-      const isMobile = window.matchMedia("(max-width: 767px)").matches;
-      const scaleBoost = isMobile ? 0.03 : 0.08;
-      const scale = 1 + progress * scaleBoost;
+      const scale = 1 + progress * 0.08;
       media.style.transform = `translate3d(0, ${mediaOffset.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
 
       // Veil drifts gently for layered depth
@@ -1513,7 +1691,7 @@
       services: 0.1,
       dentists: 0.08,
       gallery: 0.11,
-      testimonials: 0.09,
+      testimonials: 0,
       financing: 0.07,
       location: 0.08,
     };
@@ -1616,10 +1794,12 @@
     });
   }
 
-  // DENTISTS - Entire card slides in
+  // DENTISTS - Entire card slides in (static grid only; carousel uses Embla transforms)
   function setupDentistsAnimations() {
     const dentistCards = document.querySelectorAll(".dentist-card:not([data-clone])");
     dentistCards.forEach((card, i) => {
+      if (card.closest(".dentists__carousel--active")) return;
+
       const direction = i % 2 === 0 ? "slide-left" : "slide-right";
       card.setAttribute("data-animate", direction);
       card.setAttribute("data-anim-label", `dentist-card-${i + 1}`);
@@ -1627,26 +1807,27 @@
     });
   }
 
-  // GALLERY - Scale + fade with stagger
+  // GALLERY - Scale + fade with stagger (static layouts only; carousel uses Embla transforms)
   function setupGalleryAnimations() {
     const galleryItems = document.querySelectorAll(".gallery__item:not([data-clone])");
     galleryItems.forEach((item, i) => {
-      item.setAttribute('data-animate', 'fade-scale');
-      item.setAttribute('data-anim-label', `gallery-item-${i + 1}`);
+      if (item.closest(".gallery__carousel--active")) return;
+
+      item.setAttribute("data-animate", "fade-scale");
+      item.setAttribute("data-anim-label", `gallery-item-${i + 1}`);
       item.style.transitionDelay = `${Math.min(i * 60, 400)}ms`;
       animationObserver.observe(item);
     });
   }
 
-  // TESTIMONIALS - Fade up with stagger
+  // TESTIMONIALS - Fade the block once (cards sit in a horizontal track)
   function setupTestimonialsAnimations() {
-    const testimonialCards = document.querySelectorAll('.testimonial-card');
-    testimonialCards.forEach((card, i) => {
-      card.setAttribute('data-animate', 'slide-up');
-      card.setAttribute('data-anim-label', `testimonial-${i + 1}`);
-      card.style.transitionDelay = `${i * 120}ms`;
-      animationObserver.observe(card);
-    });
+    const wrap = document.querySelector(".testimonials__wrap");
+    if (!wrap) return;
+
+    wrap.setAttribute("data-animate", "fade");
+    wrap.setAttribute("data-anim-label", "testimonials-wrap");
+    animationObserver.observe(wrap);
   }
 
   // FINANCING - Staggered scale fade per image
@@ -1754,164 +1935,6 @@
         return `<div class="${className}">→ ${entry.message}</div>`;
       })
       .join('');
-  }
-
-  // -------------------------------------------------------------------------
-  // GALLERY NAVIGATION + INFINITE AUTO-SCROLL
-  // -------------------------------------------------------------------------
-  function initGalleryNav() {
-    const scroller = document.querySelector("[data-gallery-scroller]");
-    const prevBtn = document.querySelector("[data-gallery-prev]");
-    const nextBtn = document.querySelector("[data-gallery-next]");
-
-    if (!scroller || !prevBtn || !nextBtn) return;
-
-    const realItems = getRealCarouselItems(scroller, ".gallery__item");
-    if (realItems.length === 0) return;
-
-    appendInfiniteClone(scroller, realItems[0]);
-    const realCount = realItems.length;
-
-    let autoScrollInterval = null;
-    let isPaused = false;
-    let currentIndex = 0;
-    let hasStarted = false;
-    let isAutoScrolling = false;
-
-    function scrollToIndex(index, behavior = "smooth") {
-      const allItems = scroller.querySelectorAll(".gallery__item");
-      const item = allItems[index];
-      if (!item) return;
-
-      isAutoScrolling = true;
-      scrollCarouselItemToCenter(scroller, item, behavior);
-
-      const release = () => {
-        isAutoScrolling = false;
-      };
-
-      if (index === realCount) {
-        setTimeout(() => {
-          scrollCarouselItemToCenter(scroller, allItems[0], "auto");
-          currentIndex = 0;
-          release();
-        }, prefersReducedMotion.matches ? 0 : 650);
-      } else {
-        currentIndex = index;
-        setTimeout(release, prefersReducedMotion.matches ? 0 : 650);
-      }
-    }
-
-    function goToNext() {
-      scrollToIndex(currentIndex + 1);
-    }
-
-    function goToPrev() {
-      if (currentIndex === 0) {
-        scrollToIndex(realCount - 1);
-      } else {
-        scrollToIndex(currentIndex - 1);
-      }
-    }
-
-    function startAutoScroll() {
-      if (prefersReducedMotion.matches || isPaused || autoScrollInterval) return;
-
-      autoScrollInterval = setInterval(() => {
-        if (isPaused) return;
-        goToNext();
-      }, 3000);
-    }
-
-    function pauseAutoScroll() {
-      isPaused = true;
-      if (autoScrollInterval) {
-        clearInterval(autoScrollInterval);
-        autoScrollInterval = null;
-      }
-    }
-
-    function resumeAutoScroll() {
-      isPaused = false;
-      startAutoScroll();
-    }
-
-    function pauseAndResumeLater(delay = 7000) {
-      pauseAutoScroll();
-      clearTimeout(scroller._galleryResumeTimeout);
-      scroller._galleryResumeTimeout = setTimeout(resumeAutoScroll, delay);
-    }
-
-    prevBtn.disabled = false;
-    nextBtn.disabled = false;
-    prevBtn.addEventListener("click", () => {
-      pauseAndResumeLater();
-      goToPrev();
-    });
-    nextBtn.addEventListener("click", () => {
-      pauseAndResumeLater();
-      goToNext();
-    });
-
-    scroller.addEventListener("mouseenter", pauseAutoScroll);
-    scroller.addEventListener("mouseleave", resumeAutoScroll);
-    scroller.addEventListener("touchstart", pauseAutoScroll, { passive: true });
-    scroller.addEventListener("touchend", resumeAutoScroll, { passive: true });
-    scroller.addEventListener("touchcancel", resumeAutoScroll, { passive: true });
-
-    let scrollTimeout;
-    scroller.addEventListener(
-      "scroll",
-      () => {
-        if (isAutoScrolling) return;
-
-        const jumpedIndex = resetInfiniteCloneJump(scroller, realItems);
-        if (jumpedIndex !== false) {
-          currentIndex = jumpedIndex;
-          return;
-        }
-
-        pauseAutoScroll();
-        clearTimeout(scrollTimeout);
-
-        scrollTimeout = setTimeout(() => {
-          currentIndex = getClosestCarouselIndex(scroller, realItems);
-          resumeAutoScroll();
-        }, 5000);
-      },
-      { passive: true }
-    );
-
-    const section = document.querySelector('[data-section="gallery"]');
-    const beginCarousel = () => {
-      currentIndex = 0;
-      scrollCarouselItemToCenter(scroller, realItems[0], "auto");
-      setTimeout(() => {
-        isPaused = false;
-        startAutoScroll();
-      }, 800);
-    };
-
-    if (section) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && !hasStarted) {
-              hasStarted = true;
-              beginCarousel();
-              observer.unobserve(section);
-            }
-          });
-        },
-        {
-          threshold: 0.2,
-          rootMargin: "0px 0px -10% 0px",
-        }
-      );
-      observer.observe(section);
-    } else {
-      beginCarousel();
-    }
   }
 
   // -------------------------------------------------------------------------
