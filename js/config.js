@@ -62,7 +62,7 @@ const config = {
     },
 
     // OPTIONAL — leave blank to hide email in footer
-    email: "",
+    email: "dentaladanze9@gmail.com",
 
     // OPTIONAL — leave blank to hide trust-bar stats (entire bar hidden when all empty)
     yearsInPractice: "",
