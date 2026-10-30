@@ -128,7 +128,7 @@ const config = {
       },
       location: {
         hours: "Hours",
-        call: "Call Us",
+        call: "WhatsApp",
         directions: "Get Directions",
         mapInteract: "Tap to interact with the map",
         closed: "Closed",
@@ -144,6 +144,9 @@ const config = {
       },
       stickyBar: {
         cta: "Book Appointment",
+      },
+      whatsapp: {
+        label: "Chat with us on WhatsApp",
       },
       footer: {
         contact: "Contact",
@@ -207,7 +210,7 @@ const config = {
       },
       location: {
         hours: "Horario",
-        call: "Llámanos",
+        call: "WhatsApp",
         directions: "Cómo Llegar",
         mapInteract: "Toca para interactuar con el mapa",
         closed: "Cerrado",
@@ -223,6 +226,9 @@ const config = {
       },
       stickyBar: {
         cta: "Agendar Cita",
+      },
+      whatsapp: {
+        label: "Escríbenos por WhatsApp",
       },
       footer: {
         contact: "Contacto",

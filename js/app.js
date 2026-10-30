@@ -123,6 +123,7 @@
     renderLocation();
     renderFooter();
     renderStickyBar();
+    renderWhatsAppFloat();
     applyStaticI18n();
     updateGalleryLightboxLabels();
     refreshAnimations();
@@ -198,17 +199,19 @@
     if (group) group.setAttribute("aria-label", t("langToggle.label"));
   }
 
+  function whatsappDigits() {
+    // phoneTel must already include the country code (Honduras is 504). Do not
+    // prefix another country code — wa.me expects digits only, no plus sign.
+    return (cfg.practice.phoneTel || cfg.practice.phone || "").replace(/\D/g, "");
+  }
+
   function whatsappHref(message = "") {
-    const digits = (cfg.practice.phoneTel || cfg.practice.phone || "").replace(/\D/g, "");
-    if (!digits) return "#";
-    
-    // WhatsApp link format: https://wa.me/1234567890?text=Message
-    const baseUrl = `https://wa.me/1${digits}`;
-    if (message) {
-      const encodedMessage = encodeURIComponent(message);
-      return `${baseUrl}?text=${encodedMessage}`;
-    }
-    return baseUrl;
+    const digits = whatsappDigits();
+    if (!digits) return "#contact";
+
+    const baseUrl = `https://wa.me/${digits}`;
+    if (!message) return baseUrl;
+    return `${baseUrl}?text=${encodeURIComponent(message)}`;
   }
 
   function renderBookCTAs() {
@@ -236,8 +239,33 @@
     const bar = document.querySelector("[data-sticky-bar]");
     if (!bar) return;
     // Always useful when phone exists; hide only if no phone configured
-    const hasPhone = Boolean((cfg.practice.phoneTel || cfg.practice.phone || "").replace(/\D/g, ""));
+    const hasPhone = Boolean(whatsappDigits());
     bar.hidden = !hasPhone;
+  }
+
+  function renderWhatsAppFloat() {
+    const link = document.querySelector("[data-whatsapp-float]");
+    if (!link) return;
+
+    const digits = whatsappDigits();
+    if (!digits) {
+      link.hidden = true;
+      link.removeAttribute("href");
+      return;
+    }
+
+    const message =
+      lang === "es"
+        ? "Hola, me gustaría agendar una cita"
+        : "Hello, I would like to book an appointment";
+
+    link.hidden = false;
+    link.href = whatsappHref(message);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    const label = t("whatsapp.label");
+    link.setAttribute("aria-label", label);
+    link.title = label;
   }
 
   // -------------------------------------------------------------------------
@@ -1307,12 +1335,19 @@
           </div>
         </div>
         <div class="site-footer__bottom">
-          © ${year} ${escapeHtml(cfg.practice.name)}. ${escapeHtml(t("footer.rights"))}
+          <p class="site-footer__rights">
+            © ${year} ${escapeHtml(cfg.practice.name)}. ${escapeHtml(t("footer.rights"))}
+          </p>
+          <a
+            class="site-footer__iago"
+            href="https://iagodigital.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="site-footer__iago-kicker">${escapeHtml(t("footer.developedBy"))}</span>
+            <span class="site-footer__iago-brand"><span class="site-footer__iago-i">i</span>AGO <span class="site-footer__iago-digital">Digital</span></span>
+          </a>
         </div>
-        <p class="site-footer__credit">
-          ${escapeHtml(t("footer.developedBy"))}
-          <a href="https://iagodigital.vercel.app" target="_blank" rel="noopener">IAGO Digital</a>
-        </p>
       </div>`;
   }
 
